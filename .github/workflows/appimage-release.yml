@@ -653,7 +653,7 @@ jobs:
           install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
           install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
 
-          ../linuxdeployqt-continuous-x86_64.AppImage \
+          ../../linuxdeployqt-continuous-x86_64.AppImage \
           AppDir/usr/share/applications/*.desktop \
           -appimage \
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
