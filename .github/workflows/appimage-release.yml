@@ -495,26 +495,11 @@ jobs:
           cmake --build . -- -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
-      - name: AppImageKit-checkrt build.
-        if: env.ONLY_CACHE == 'false'
-        run: |
-          cd $LibrariesPath
-
-          git clone $GIT/darealshinji/AppImageKit-checkrt.git
-          cd AppImageKit-checkrt
-          git checkout a2866fd
-          git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
-          make -j$(nproc)
-
       - name: AppImage build.
         if: env.ONLY_CACHE == 'false'
         run: |
           # Let appimagetool determine the repository
           cd $REPO_NAME
-
-          # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
-          install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
-          install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
 
           ../../linuxdeployqt-continuous-x86_64.AppImage \
           AppDir/usr/share/applications/*.desktop \
