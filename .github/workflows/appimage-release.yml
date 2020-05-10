@@ -67,7 +67,7 @@ jobs:
           repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
-          ref: '8487cf2a380e11706258c7aee061ba7c15992d6a'
+          ref: '2a83323c7f87ecef66e61ec41a74b8826155331e'
 
       - name: First set up.
         shell: bash
