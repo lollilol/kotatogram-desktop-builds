@@ -1,3 +1,3 @@
-# Kotatogram Desktop - AppImage builds
+# Kotatogram Desktop - App builds
 
-This is AppImage builds for Kotatogram Desktop. Main repository here: https://github.com/kotatogram/kotatogram-desktop
+This repository is intended for builds for Kotatogram Desktop. Main repository here: https://github.com/kotatogram/kotatogram-desktop
