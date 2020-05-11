@@ -18,7 +18,7 @@ jobs:
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
               let matches = s.match(pattern);
-              if (!matches.length) return "master";
+              if (!matches) return "master";
 
               return matches[0];
             }
@@ -27,7 +27,7 @@ jobs:
               let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))+)$/gmi;
               let matches = s.match(pattern);
               let all = ["appimage", "windows"];
-              if (!matches.length) return all;
+              if (!matches) return all;
 
               let builds = [];
               for (const match of matches) {
