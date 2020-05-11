@@ -16,7 +16,7 @@ jobs:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
             function parseRef(s) {
-              let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
+              let pattern = /^(?:ref(?:erence)?|commit|tag):\s*(.*)$/gmi;
               let matches = pattern.exec(s);
               if (!matches || matches.length < 1) return "master";
 
@@ -24,7 +24,7 @@ jobs:
             }
 
             function parseBuild(s) {
-              let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))*)$/gmi;
+              let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s*(?:(appimage|linux|win(?:dows)?)(?:,\s*(appimage|linux|win(?:dows)?))*)$/gmi;
               let matches = pattern.exec(s);
               let all = ["appimage", "windows"];
               if (!matches || matches.length < 1) return all;
