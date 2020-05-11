@@ -15,11 +15,10 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
-            console.log(Object.keys(context.payload));
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
               let matches = s.match(pattern);
-              if (!matches.length) return null;
+              if (!matches.length) return "master";
 
               return matches[0];
             }
@@ -27,7 +26,8 @@ jobs:
             function parseBuild(s) {
               let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))+)$/gmi;
               let matches = s.match(pattern);
-              if (!matches.length) return null;
+              let all = ["appimage", "windows"];
+              if (!matches.length) return all;
 
               let builds = [];
               for (const match of matches) {
@@ -50,15 +50,18 @@ jobs:
                 }
               }
 
-              if (!builds.length) return null;
+              if (!builds.length) return all;
               return builds;
             }
 
-            let requestParams = {};
-            let ref = parseRef(context.release.description);
             console.log("Current description:");
-            console.log(context.release.description);
+            console.log(context.payload.release.description);
+
+            let requestParams = {
+              ref: parseRef(context.payload.release.description),
+              builds: parseBuild(context.payload.release.description)
+            };
             
-            if (ref === null)
-              throw "Ref/Reference/Build/Tag/Commit not found in description.";
+            console.log("Parsed parameters:");
+            console.log(requestParams);
 
