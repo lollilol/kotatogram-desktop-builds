@@ -6,8 +6,8 @@ on:
 
 jobs:
 
-  linux:
-    name: Ubuntu 14.04
+  parse:
+    name: Parse release
     runs-on: ubuntu-latest
     steps:
       - name: Parse release description
@@ -61,17 +61,23 @@ jobs:
 
             let requestParams = {
               ref: parseRef(context.payload.release.body),
-              builds: parseBuild(context.payload.release.body),
+              
               release_url: context.payload.release.release_url
             };
             
             console.log("Parsed parameters:");
             console.log(requestParams);
 
-            github.repos.createDispatchEvent({
-              owner: 'kotatogram',
-              repo: 'kotatogram-desktop-builds',
-              event_type: 'build',
-              client_payload: requestParams,
-            });
+            let builds = parseBuild(context.payload.release.body);
 
+            console.log("Builds:");
+            console.log(builds);
+
+            for (const build of builds) {
+              github.repos.createDispatchEvent({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                event_type: 'build_'+build,
+                client_payload: requestParams,
+              });
+            }
