@@ -17,31 +17,26 @@ jobs:
           script: |
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
-              let matches = s.match(pattern);
-              if (!matches) return "master";
+              let matches = pattern.exec(s);
+              if (!matches || matches.length < 1) return "master";
 
-              return matches[0].groups(1);
+              return matches[1];
             }
 
             function parseBuild(s) {
               let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))*)$/gmi;
+              let matches = pattern.exec(s);
               let all = ["appimage", "windows"];
-
-              let matches = s.match(pattern);
-              if (!matches) return all;
-
-              let match = matches[0];
-              if (!match || match.length < 1) return all;
+              if (!matches || matches.length < 1) return all;
 
               let builds = [];
               for (let i = 1; i < match.length; i++) {
-                let b = match.groups(i);
-                if (!b) continue;
+                if (!match[i]) continue;
 
-                switch (b.toLowerCase()) {
+                switch (match[i].toLowerCase()) {
                   case "appimage":
                   case "windows":
-                    builds.push(b.toLowerCase());
+                    builds.push(match.toLowerCase());
                     break;
 
                   case "win":
