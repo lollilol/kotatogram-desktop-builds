@@ -542,7 +542,7 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
-          mv out/Release/bin/Updater artifact/Kotatogram
+          ${{ github.event.client_payload.update }} && mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
           tar -caf $ARTIFACT_NAME Kotatogram
