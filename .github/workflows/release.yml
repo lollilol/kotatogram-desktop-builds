@@ -20,11 +20,11 @@ jobs:
               let matches = s.match(pattern);
               if (!matches) return "master";
 
-              return matches[0];
+              return matches[1];
             }
 
             function parseBuild(s) {
-              let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))+)$/gmi;
+              let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))*)$/gmi;
               let matches = s.match(pattern);
               let all = ["appimage", "windows"];
               if (!matches) return all;
