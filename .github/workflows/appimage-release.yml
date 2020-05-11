@@ -482,11 +482,14 @@ jobs:
         run: |
           cd $REPO_NAME/Telegram
 
+          UPDDEFINE="OFF"
+          ${{ github.event.client_payload.update }} || UPDDEFINE="ON"
+
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
-          -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=${UPDDEFINE} \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
