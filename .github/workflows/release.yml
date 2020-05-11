@@ -71,7 +71,7 @@ jobs:
             github.repos.createDispatchEvent({
               owner: 'kotatogram',
               repo: 'kotatogram-desktop-builds',
-              event_type: 'build'
+              event_type: 'build',
               client_payload: requestParams,
             });
 
