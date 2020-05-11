@@ -29,6 +29,9 @@ jobs:
               let all = ["appimage", "windows"];
               if (!matches) return all;
 
+              console.log("Matches (build): ");
+              console.log(matches);
+
               let builds = [];
               for (const match of matches) {
                 switch (match.toLowerCase()) {
