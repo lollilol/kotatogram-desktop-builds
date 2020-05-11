@@ -61,7 +61,7 @@ jobs:
 
             let requestParams = {
               ref: parseRef(context.payload.release.body),
-              
+              display_version: context.payload.release.tag_name,
               release_url: context.payload.release.upload_url
             };
             
