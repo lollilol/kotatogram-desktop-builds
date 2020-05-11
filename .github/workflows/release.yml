@@ -30,13 +30,13 @@ jobs:
               if (!matches || matches.length < 1) return all;
 
               let builds = [];
-              for (let i = 1; i < match.length; i++) {
-                if (!match[i]) continue;
+              for (let i = 1; i < matches.length; i++) {
+                if (!matches[i]) continue;
 
-                switch (match[i].toLowerCase()) {
+                switch (matches[i].toLowerCase()) {
                   case "appimage":
                   case "windows":
-                    builds.push(match.toLowerCase());
+                    builds.push(matches[i].toLowerCase());
                     break;
 
                   case "win":
@@ -48,7 +48,7 @@ jobs:
                     break;
 
                   default:
-                    console.warn("Unknown build: " + match);
+                    console.warn("Unknown build: " + matches[i]);
                 }
               }
 
