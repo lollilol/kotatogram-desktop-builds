@@ -1,13 +1,14 @@
 name: Release AppImage
 
 on:
-  release:
-    types: [created]
+  repository_dispatch:
+    types: [build]
 
 jobs:
 
   linux:
     name: Ubuntu 14.04
+    if: ${{ !github.event.client_payload.builds || "appimage" in github.event.client_payload.builds }}
     runs-on: ubuntu-latest
     container:
       image: ubuntu:trusty
@@ -67,7 +68,7 @@ jobs:
           repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
-          ref: '2a83323c7f87ecef66e61ec41a74b8826155331e'
+          ref: ${{ github.event.client_payload.ref }}
 
       - name: First set up.
         shell: bash
@@ -545,12 +546,12 @@ jobs:
 
       - name: Upload release asset.
         id: upload-release-asset
-        if: env.ONLY_CACHE == 'false'
+        if: env.ONLY_CACHE == 'false' && github.event.client_payload.release_url
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ github.event.client_payload.release_url }}
           asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream

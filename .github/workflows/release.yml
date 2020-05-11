@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+
+  linux:
+    name: Ubuntu 14.04
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse release description
+        uses: actions/github-script@0.9.0
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            console.log(Object.keys(context);
+            function parseRef(s) {
+              let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
+              let matches = s.match(pattern);
+              if (!matches.length) return null;
+
+              return matches[0];
+            }
+
+            function parseBuild(s) {
+              let pattern = /^(?:builds?|platforms?|OS(?:es)?):\s+(?:(appimage|linux|win(?:dows)?)(?:,\s+(appimage|linux|win(?:dows)?))+)$/gmi;
+              let matches = s.match(pattern);
+              if (!matches.length) return null;
+
+              let builds = [];
+              for (const match of matches) {
+                switch (match.toLowerCase()) {
+                  case "appimage":
+                  case "windows":
+                    builds.push(match.toLowerCase());
+                    break;
+
+                  case "win":
+                    builds.push("windows");
+                    break;
+                  
+                  case "linux":
+                    builds.push("appimage");
+                    break;
+
+                  default:
+                    console.warn("Unknown build: " + match);
+                }
+              }
+
+              if (!builds.length) return null;
+              return builds;
+            }
+
+            let requestParams = {};
+            let ref = parseRef(context.release.description);
+            console.log("Current description:");
+            console.log(context.release.description);
+            
+            if (ref === null)
+              throw "Ref/Reference/Build/Tag/Commit not found in description.";
+
