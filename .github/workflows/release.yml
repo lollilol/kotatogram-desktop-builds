@@ -15,7 +15,7 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
-            console.log(Object.keys(context));
+            console.log(Object.keys(context.payload));
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
               let matches = s.match(pattern);
