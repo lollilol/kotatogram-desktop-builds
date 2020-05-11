@@ -15,7 +15,6 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
-            console.log(Object.keys(context.payload.release));
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag):\s+(.*)$/gmi;
               let matches = s.match(pattern);
@@ -56,11 +55,11 @@ jobs:
             }
 
             console.log("Current description:");
-            console.log(context.payload.release.description);
+            console.log(context.payload.release.body);
 
             let requestParams = {
-              ref: parseRef(context.payload.release.description),
-              builds: parseBuild(context.payload.release.description)
+              ref: parseRef(context.payload.release.body),
+              builds: parseBuild(context.payload.release.body)
             };
             
             console.log("Parsed parameters:");
