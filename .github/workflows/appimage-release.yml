@@ -8,7 +8,7 @@ jobs:
 
   linux:
     name: Ubuntu 14.04
-    if: ${{ !github.event.client_payload.builds || github.event.client_payload.builds.includes("appimage") }}
+    if: "github.event.client_payload.builds && github.event.client_payload.builds.includes('appimage')"
     runs-on: ubuntu-latest
     container:
       image: ubuntu:trusty
