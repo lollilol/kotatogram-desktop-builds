@@ -476,7 +476,7 @@ jobs:
 
       - name: Setting up updater keys.
         if: ${{ github.event.client_payload.update }}
-        shell: python3
+        shell: python3 {0}
         run: |
           import os
           p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
