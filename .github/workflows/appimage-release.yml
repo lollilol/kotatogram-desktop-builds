@@ -479,7 +479,9 @@ jobs:
         shell: python3
         run: |
           import os
-          os.mkdir("DesktopPrivate")
+          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
+          os.mkdir(p)
+          os.chdir(p)
 
           keys_contents = r"""
           const char *PrivateKey = "\
@@ -497,10 +499,10 @@ jobs:
           const char *AlphaPrivateKey = "";
           """
 
-          with open("DesktopPrivate/packer_private.h", "w", encoding="utf-8") as f:
+          with open("packer_private.h", "w", encoding="utf-8") as f:
               f.write(keys_contents)
 
-          with open("DesktopPrivate/alpha_private.h", "w", encoding="utf-8") as f:
+          with open("alpha_private.h", "w", encoding="utf-8") as f:
               f.write(alpha_contents)
 
       - name: Kotatogram Desktop build.
