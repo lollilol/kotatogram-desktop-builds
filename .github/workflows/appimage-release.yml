@@ -591,12 +591,6 @@ jobs:
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream
 
-      - name: Packer build.
-        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
-        run: |
-          cd $REPO_NAME/out/Release
-          cmake --build . --target Packer -- -j$(nproc)
-
       - name: Parse built version.
         if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
         run: |
