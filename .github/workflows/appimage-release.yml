@@ -487,11 +487,13 @@ jobs:
           const char *PrivateKey = "\
           -----BEGIN RSA PRIVATE KEY-----\n\
           ${{ secrets.PACKER_PRIVATE_KEY }}
+          -----END RSA PRIVATE KEY-----\
           ";
 
           const char *PrivateBetaKey = "\
           -----BEGIN RSA PRIVATE KEY-----\n\
           ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+          -----END RSA PRIVATE KEY-----\
           ";
           """
 
