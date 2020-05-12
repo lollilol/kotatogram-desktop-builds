@@ -474,6 +474,35 @@ jobs:
           cd ../..
           rm -rf Kvantum
 
+      - name: Setting up updater keys.
+        if: ${{ github.event.client_payload.update }}
+        shell: python3
+        run: |
+          import os
+          os.mkdir("DesktopPrivate")
+
+          keys_contents = r"""
+          const char *PrivateKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_KEY }}
+          ";
+
+          const char *PrivateBetaKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+          ";
+          """
+
+          alpha_contents = r"""
+          const char *AlphaPrivateKey = "";
+          """
+
+          with open("DesktopPrivate/packer_private.h", "w", encoding="utf-8") as f:
+              f.write(keys_contents)
+
+          with open("DesktopPrivate/alpha_private.h", "w", encoding="utf-8") as f:
+              f.write(alpha_contents)
+
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
@@ -557,4 +586,44 @@ jobs:
           upload_url: ${{ github.event.client_payload.release_url }}
           asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
           asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
+
+      - name: Packer build.
+        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
+        run: |
+          cd $REPO_NAME/out/Release
+          cmake --build . --target Packer -- -j$(nproc)
+
+      - name: Parse built version.
+        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
+        run: |
+          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
+          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
+          _BETA_SWITCH=""
+          [ "$_ISBETA" == "true" ] && _BETA_SWITCH=" -beta"
+          echo "::set-env name=PACKER_VERSION::${_VERSION}"
+          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+
+      - name: Package update.
+        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
+        run: |
+          cd $REPO_NAME
+
+          ./out/Release/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          -path artifact/Kotatogram/Kotatogram.AppImage \
+          -path artifact/Kotatogram/Updater
+          
+          mv tlinuxupd${{ env.PACKER_VERSION }} tappimageupd${{ env.PACKER_VERSION }}
+          tar -caf tappimageupd${{ env.PACKER_VERSION }}.tar.xz tappimageupd${{ env.PACKER_VERSION }}
+
+      - name: Upload update asset.
+        id: upload-update-asset
+        if: env.ONLY_CACHE == 'false' && github.event.client_payload.update && github.event.client_payload.release_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
+          asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
           asset_content_type: application/octet-stream
