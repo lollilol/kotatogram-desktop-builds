@@ -97,6 +97,6 @@ jobs:
                 owner: context.payload.repository.owner.login,
                 repo: context.payload.repository.name,
                 event_type: 'build_'+build,
-                client_payload: requestParams,
+                client_payload: { options: requestParams },
               });
             }

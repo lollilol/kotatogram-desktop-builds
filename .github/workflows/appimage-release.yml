@@ -67,7 +67,7 @@ jobs:
           repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
-          ref: ${{ github.event.client_payload.ref }}
+          ref: ${{ github.event.client_payload.options.ref }}
 
       - name: First set up.
         shell: bash
@@ -475,7 +475,7 @@ jobs:
           rm -rf Kvantum
 
       - name: Setting up updater keys.
-        if: ${{ github.event.client_payload.update }}
+        if: ${{ github.event.client_payload.options.update }}
         shell: python3 {0}
         run: |
           import os
@@ -516,7 +516,7 @@ jobs:
           cd $REPO_NAME/Telegram
 
           UPDDEFINE="OFF"
-          ${{ github.event.client_payload.update }} || UPDDEFINE="ON"
+          ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
 
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
@@ -535,7 +535,7 @@ jobs:
       - name: AppImage build.
         if: env.ONLY_CACHE == 'false'
         env:
-          tag_name: ${{ github.event.client_payload.display_version }}
+          tag_name: ${{ github.event.client_payload.options.display_version }}
         run: |
           # Let appimagetool determine the repository
           cd $REPO_NAME
@@ -576,25 +576,25 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
-          ${{ github.event.client_payload.update }} && mv out/Release/bin/Updater artifact/Kotatogram
+          ${{ github.event.client_payload.options.update }} && mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
           tar -caf $ARTIFACT_NAME Kotatogram
 
       - name: Upload release asset.
         id: upload-release-asset
-        if: env.ONLY_CACHE == 'false' && github.event.client_payload.release_url
+        if: env.ONLY_CACHE == 'false' && github.event.client_payload.options.release_url
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
-          upload_url: ${{ github.event.client_payload.release_url }}
+          upload_url: ${{ github.event.client_payload.options.release_url }}
           asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream
 
       - name: Parse built version.
-        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
+        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.options.update"
         run: |
           _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
           _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
@@ -604,7 +604,7 @@ jobs:
           echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
 
       - name: Package update.
-        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.update"
+        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.options.update"
         run: |
           cd $REPO_NAME
 
@@ -617,12 +617,12 @@ jobs:
 
       - name: Upload update asset.
         id: upload-update-asset
-        if: env.ONLY_CACHE == 'false' && github.event.client_payload.update && github.event.client_payload.release_url
+        if: env.ONLY_CACHE == 'false' && github.event.client_payload.options.update && github.event.client_payload.options.release_url
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
-          upload_url: ${{ github.event.client_payload.release_url }}
+          upload_url: ${{ github.event.client_payload.options.release_url }}
           asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
           asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
           asset_content_type: application/octet-stream
