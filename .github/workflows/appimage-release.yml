@@ -599,7 +599,7 @@ jobs:
           _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
           _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
           _BETA_SWITCH=""
-          [[ "$_ISBETA" == "true" ]] && _BETA_SWITCH=" -beta"
+          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
           echo "::set-env name=PACKER_VERSION::${_VERSION}"
           echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
 
