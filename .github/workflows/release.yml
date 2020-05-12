@@ -15,6 +15,27 @@ jobs:
         with:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
+            function parseBoolOption(s, namePattern) {
+              let pattern = /^([a-z]+):\s*(yes|no|true|false|enable|disable|on|off|0|1)$/gmi;
+              let matches = pattern.exec(s);
+              if (!matches || matches.length < 2) return -1;
+              
+              let nameMatches = namePattern.exec(matches[1]);
+              if (!nameMatches) return -1;
+
+              switch (matches[2]) {
+                case "yes":
+                case "true":
+                case "enable":
+                case "on":
+                case "1":
+                  return true;
+
+                default:
+                  return false;
+              }
+            }
+
             function parseRef(s) {
               let pattern = /^(?:ref(?:erence)?|commit|tag|branch):\s*(.*)$/gmi;
               let matches = pattern.exec(s);
@@ -57,21 +78,9 @@ jobs:
             }
 
             function parseUpdate(s) {
-              let pattern = /^upd(?:ater?)?:\s*(yes|no|true|false|enable|disable|on|off|0|1)$/gmi;
-              let matches = pattern.exec(s);
-              if (!matches || matches.length < 1) return true;
-
-              switch (matches[1]) {
-                case "yes":
-                case "true":
-                case "enable":
-                case "on":
-                case "1":
-                  return true;
-
-                default:
-                  return false;
-              }
+              let namePattern = /^upd(?:ate(?:r)?)?$/i;
+              let result = parseBoolOption(s, namePattern);
+              return (result == -1 ? true : result)
             }
 
             console.log("Current description:");
