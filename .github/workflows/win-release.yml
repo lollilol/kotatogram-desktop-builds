@@ -306,10 +306,10 @@ jobs:
           call vcvars32.bat
 
           set UPDDEFINE="OFF"
-          if "${{ github.event.client_payload.options.update }}" == "true" set UPDDEFINE="ON"
+          if NOT "${{ github.event.client_payload.options.update }}" == "true" set UPDDEFINE="ON"
 
           set PACKERDEFINE="ON"
-          if "${{ github.event.client_payload.options.packer }}" == "true" set PACKERDEFINE="OFF"
+          if NOT "${{ github.event.client_payload.options.packer }}" == "true" set PACKERDEFINE="OFF"
 
           cmake -B build . ^
           -GNinja ^
