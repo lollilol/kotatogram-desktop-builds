@@ -520,8 +520,8 @@ jobs:
           UPDDEFINE="OFF"
           ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
 
-          PACKERDEFINE="OFF"
-          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="ON"
+          PACKERDEFINE="ON"
+          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="OFF"
 
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
