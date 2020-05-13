@@ -80,7 +80,7 @@ jobs:
             function parseUpdate(s) {
               let namePattern = /^upd(?:ate(?:r)?)?$/i;
               let result = parseBoolOption(s, namePattern);
-              return (result == -1 ? true : result)
+              return (result == -1 ? false : result)
             }
 
             function parsePacker(s) {
