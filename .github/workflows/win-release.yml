@@ -1,0 +1,363 @@
+name: Release Windows.
+
+on:
+  repository_dispatch:
+    types: [build_appimage]
+
+jobs:
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    env:
+      SDK: "10.0.18362.0"
+      VC: "call vcvars32.bat && cd Libraries"
+      GIT: "https://github.com"
+      QT: "5_12_8"
+      OPENSSL_VER: "1_1_1"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "2"
+      DOC_PATH: "docs/building-msvc.md"
+      AUTO_CACHING: "1"
+
+    steps:
+      - name: Get repository name.
+        shell: bash
+        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: Set up environment variables.
+        shell: cmd
+        run: |
+          echo ::add-path::C:\Strawberry\perl\bin\
+          echo ::add-path::"%programfiles%\NASM"
+
+          C:
+          cd "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\"
+          echo ::add-path::%cd%
+
+          call vcvars32.bat
+          D:
+          cd %GITHUB_WORKSPACE%
+          msbuild -version > CACHE_KEY.txt
+          echo %MANUAL_CACHING% >> CACHE_KEY.txt
+
+          mkdir Libraries
+          cd Libraries
+          echo ::set-env name=LibrariesPath::%cd%
+
+      - name: Generate cache key.
+        shell: bash
+        run: |
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/win-release.yml
+            echo `md5sum $thisFile | awk '{ print $1 }'` >> CACHE_KEY.txt
+          fi
+          echo ::set-env name=CACHE_KEY::`md5sum CACHE_KEY.txt | awk '{ print $1 }'`
+
+      - name: Choco installs.
+        run: |
+          choco install --no-progress -y nasm yasm jom ninja
+
+      - name: Patches.
+        shell: bash
+        run: |
+          echo "Find necessary commit from doc."
+          checkoutCommit=$(grep -A 1 "cd patches" $REPO_NAME/$DOC_PATH | sed -n 2p)
+          cd $LibrariesPath
+          git clone $GIT/desktop-app/patches.git
+          cd Patches
+          eval $checkoutCommit
+
+      - name: LZMA.
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone %GIT%/telegramdesktop/lzma.git
+          cd lzma
+          cd C\Util\LzmaLib
+          msbuild -m LzmaLib.sln /property:Configuration=Debug
+          msbuild -m LzmaLib.sln /property:Configuration=Release
+
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_${{ env.OPENSSL_VER }}
+          key: ${{ runner.OS }}-${{ env.CACHE_KEY }}-${{ env.OPENSSL_VER }}
+      - name: OpenSSL.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone %GIT%/openssl/openssl.git openssl_%OPENSSL_VER%
+          cd openssl_%OPENSSL_VER%
+          git checkout OpenSSL_%OPENSSL_VER%-stable
+          perl Configure no-shared debug-VC-WIN32
+          nmake
+          mkdir out32.dbg
+          move libcrypto.lib out32.dbg
+          move libssl.lib out32.dbg
+          move ossl_static.pdb out32.dbg\ossl_static
+          nmake clean
+          move out32.dbg\ossl_static out32.dbg\ossl_static.pdb
+          perl Configure no-shared VC-WIN32
+          nmake
+          mkdir out32
+          move libcrypto.lib out32
+          move libssl.lib out32
+          move ossl_static.pdb out32
+
+          rmdir /S /Q test
+          rmdir /S /Q .git
+
+      - name: Zlib.
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone %GIT%/telegramdesktop/zlib.git
+          cd zlib
+          git checkout tdesktop
+          cd contrib\vstudio\vc14
+          msbuild -m zlibstat.vcxproj /property:Configuration=Debug
+          msbuild -m zlibstat.vcxproj /property:Configuration=ReleaseWithoutAsm
+
+      - name: OpenAL Soft cache.
+        id: cache-openal
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/openal-soft
+          key: ${{ runner.OS }}-openal-soft-${{ env.CACHE_KEY }}
+      - name: OpenAL Soft.
+        shell: cmd
+        if: steps.cache-openal.outputs.cache-hit != 'true'
+        run: |
+          %VC%
+
+          git clone %GIT%/telegramdesktop/openal-soft.git
+          cd openal-soft
+          git checkout fix_capture
+          cd build
+          cmake ^
+          -G "Visual Studio 16 2019" ^
+          -A Win32 ^
+          -D LIBTYPE:STRING=STATIC ^
+          -D FORCE_STATIC_VCRT:STRING=ON ..
+
+          msbuild -m OpenAL.vcxproj /property:Configuration=Debug
+          msbuild -m OpenAL.vcxproj /property:Configuration=Release
+
+      - name: Opus cache.
+        id: cache-opus
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/opus
+          key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
+      - name: Opus.
+        if: steps.cache-opus.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone %GIT%/telegramdesktop/opus.git
+          cd opus
+          git checkout tdesktop
+          cd win32\VS2015
+          msbuild -m opus.sln /property:Configuration=Debug /property:Platform="Win32"
+          msbuild -m opus.sln /property:Configuration=Release /property:Platform="Win32"
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}-2-${{ hashFiles('**/build_ffmpeg_win.sh') }}
+      - name: FFmpeg.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+          choco install --no-progress -y msys2
+
+          git clone %GIT%/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          git checkout release/3.4
+          set CHERE_INVOKING=enabled_from_arguments
+          set MSYS2_PATH_TYPE=inherit
+          call c:\tools\msys64\usr\bin\bash --login ../../%REPO_NAME%/Telegram/Patches/build_ffmpeg_win.sh
+
+          rmdir /S /Q .git
+
+      - name: Qt 5.12.8 cache.
+        id: cache-qt
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/Qt-5.12.8
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8.diff') }}
+      - name: Configure Qt 5.12.8.
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+
+          git clone git://code.qt.io/qt/qt5.git qt_%QT%
+          cd qt_%QT%
+          perl init-repository --module-subset=qtbase,qtimageformats
+          git checkout v5.12.8
+          git submodule update qtbase
+          git submodule update qtimageformats
+          cd qtbase
+          git apply ../../patches/qtbase_%QT%.diff
+          cd ..
+
+          SET SSL=%LibrariesPath%\openssl_1_1_1
+          SET LIBS=libcrypto.lib Ws2_32.lib Gdi32.lib Advapi32.lib Crypt32.lib User32.lib
+
+          configure ^
+          -prefix "%LibrariesPath%\Qt-5.12.8" ^
+          -release ^
+          -opensource ^
+          -confirm-license ^
+          -static ^
+          -static-runtime -I "%SSL%\include" ^
+          -no-opengl ^
+          -openssl-linked ^
+          OPENSSL_LIBS_DEBUG="%SSL%\out32.dbg\libssl.lib %SSL%\out32.dbg\%LIBS%" ^
+          OPENSSL_LIBS_RELEASE="%SSL%\out32\libssl.lib %SSL%\out32\%LIBS%" ^
+          -mp ^
+          -nomake examples ^
+          -nomake tests ^
+          -platform win32-msvc
+      - name: Qt 5.12.8 build.
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+          cd qt_%QT%
+
+          jom -j%NUMBER_OF_PROCESSORS%
+          jom -j%NUMBER_OF_PROCESSORS% install
+
+          cd ..
+          rmdir /S /Q qt_%QT%
+
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
+        shell: cmd
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+        run: |
+          cd %REPO_NAME%
+          call vcvars32.bat
+
+          set UPDDEFINE="OFF"
+          if "${{ github.event.client_payload.options.update }}" == "true" set UPDDEFINE="ON"
+
+          set PACKERDEFINE="OFF"
+          if "${{ github.event.client_payload.options.packer }}" == "true" set PACKERDEFINE="ON"
+
+          cmake -B build . ^
+          -GNinja ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_C_COMPILER=cl ^
+          -DCMAKE_CXX_COMPILER=cl ^
+          -DTDESKTOP_API_ID=%API_ID% ^
+          -DTDESKTOP_API_HASH=%API_HASH% ^
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=%UPDDEFINE% ^
+          -DKTGDESKTOP_ENABLE_PACKER=%PACKERDEFINE% ^
+          -DDESKTOP_APP_USE_PACKAGED=OFF ^
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
+          -DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON ^
+          -DDESKTOP_APP_ENABLE_IPO_OPTIMIZATIONS=OFF ^
+          %TDESKTOP_BUILD_DEFINE% ^
+          -DCMAKE_SYSTEM_VERSION=%SDK%
+
+          cmake --build build
+
+      - name: Move artifact.
+        if: env.ONLY_CACHE == 'false'
+        shell: bash
+        env:
+          tag_name: ${{ github.event.client_payload.options.display_version }}
+        run: |
+          cd $REPO_NAME
+
+          version=${tag_name#k}
+          version=${version//-[[:digit:]]/}
+          artifact_name=$version.tar.xz
+          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+          mkdir -p artifact/Kotatogram
+          mv build/bin/Kotatogram.exe artifact/Kotatogram
+          mv build/bin/Updater.exe artifact/Kotatogram
+
+          cd artifact
+          tar -caf $artifact_name Kotatogram
+
+      - name: Upload release asset.
+        id: upload-release-asset
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.release_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.options.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
+
+      - name: Parse built version.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        shell: bash
+        run: |
+          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
+          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
+          _BETA_SWITCH=""
+          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
+          echo "::set-env name=PACKER_VERSION::${_VERSION}"
+          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+
+      - name: Package update.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        shell: bash
+        run: |
+          cd $REPO_NAME
+
+          ./build/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          -path artifact/Kotatogram/Kotatogram.exe \
+          -path artifact/Kotatogram/Updater.exe
+          
+          tar -caf tupdate${{ env.PACKER_VERSION }}.tar.xz tupdate${{ env.PACKER_VERSION }}
+
+      - name: Upload update asset.
+        id: upload-update-asset
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+          && github.event.client_payload.options.release_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.options.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
+          asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
+          asset_content_type: application/octet-stream
