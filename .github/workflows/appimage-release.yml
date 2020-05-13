@@ -552,8 +552,9 @@ jobs:
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
           version=${tag_name#k}
+          version=${version//-[[:digit:]]/}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
-          artifact_name=KtgAppImage.$version.tar.xz
+          artifact_name=$version-appimage.tar.xz
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
