@@ -83,6 +83,12 @@ jobs:
               return (result == -1 ? true : result)
             }
 
+            function parsePacker(s) {
+              let namePattern = /^pack(?:age|er)?$/i;
+              let result = parseBoolOption(s, namePattern);
+              return (result == -1 ? false : result)
+            }
+
             console.log("Current description:");
             console.log(context.payload.release.body);
 
@@ -91,6 +97,7 @@ jobs:
               display_version: context.payload.release.tag_name,
               release_url: context.payload.release.upload_url,
               update: parseUpdate(context.payload.release.body),
+              packer: parsePacker(context.payload.release.body),
             };
             
             console.log("Parsed parameters:");

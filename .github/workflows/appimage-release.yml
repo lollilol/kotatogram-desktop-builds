@@ -475,7 +475,9 @@ jobs:
           rm -rf Kvantum
 
       - name: Setting up updater keys.
-        if: ${{ github.event.client_payload.options.update }}
+        if: >
+          github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
         shell: python3 {0}
         run: |
           import os
@@ -518,12 +520,15 @@ jobs:
           UPDDEFINE="OFF"
           ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
 
+          PACKERDEFINE="OFF"
+          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="ON"
+
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=${UPDDEFINE} \
-          -DKTGDESKTOP_ENABLE_PACKER=ON \
+          -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
@@ -583,7 +588,9 @@ jobs:
 
       - name: Upload release asset.
         id: upload-release-asset
-        if: env.ONLY_CACHE == 'false' && github.event.client_payload.options.release_url
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.release_url
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -594,7 +601,10 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Parse built version.
-        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.options.update"
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
         run: |
           _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
           _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
@@ -604,7 +614,10 @@ jobs:
           echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
 
       - name: Package update.
-        if: "env.ONLY_CACHE == 'false' && github.event.client_payload.options.update"
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
         run: |
           cd $REPO_NAME
 
@@ -617,7 +630,11 @@ jobs:
 
       - name: Upload update asset.
         id: upload-update-asset
-        if: env.ONLY_CACHE == 'false' && github.event.client_payload.options.update && github.event.client_payload.options.release_url
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+          && github.event.client_payload.options.release_url
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
