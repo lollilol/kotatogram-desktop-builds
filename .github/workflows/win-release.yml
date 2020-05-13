@@ -2,7 +2,7 @@ name: Release Windows.
 
 on:
   repository_dispatch:
-    types: [build_appimage]
+    types: [build_windows]
 
 jobs:
 
@@ -28,8 +28,10 @@ jobs:
       - name: Clone.
         uses: actions/checkout@v2
         with:
+          repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
+          ref: ${{ github.event.client_payload.options.ref }}
 
       - name: Set up environment variables.
         shell: cmd
@@ -248,6 +250,49 @@ jobs:
 
           cd ..
           rmdir /S /Q qt_%QT%
+      
+      - name: Setup Python 3.x
+        if: >
+          github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Setting up updater keys.
+        if: >
+          github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        shell: python
+        run: |
+          import os
+          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
+          os.mkdir(p)
+          os.chdir(p)
+
+          keys_contents = r"""
+          const char *PrivateKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_KEY }}
+          -----END RSA PRIVATE KEY-----\
+          ";
+
+          const char *PrivateBetaKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+          -----END RSA PRIVATE KEY-----\
+          ";
+          """
+
+          alpha_contents = r"""
+          const char *AlphaPrivateKey = "";
+          """
+
+          with open("packer_private.h", "w", encoding="utf-8") as f:
+              f.write(keys_contents)
+
+          with open("alpha_private.h", "w", encoding="utf-8") as f:
+              f.write(alpha_contents)
 
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
@@ -262,8 +307,8 @@ jobs:
           set UPDDEFINE="OFF"
           if "${{ github.event.client_payload.options.update }}" == "true" set UPDDEFINE="ON"
 
-          set PACKERDEFINE="OFF"
-          if "${{ github.event.client_payload.options.packer }}" == "true" set PACKERDEFINE="ON"
+          set PACKERDEFINE="ON"
+          if "${{ github.event.client_payload.options.packer }}" == "true" set PACKERDEFINE="OFF"
 
           cmake -B build . ^
           -GNinja ^
@@ -358,6 +403,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
-          asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
+          asset_path: ./${{ env.REPO_NAME }}/tupdate${{ env.PACKER_VERSION }}.tar.xz
+          asset_name: tupdate${{ env.PACKER_VERSION }}.tar.xz
           asset_content_type: application/octet-stream
