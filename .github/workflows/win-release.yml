@@ -18,7 +18,8 @@ jobs:
       ONLY_CACHE: "false"
       MANUAL_CACHING: "2"
       DOC_PATH: "docs/building-msvc.md"
-      REPO_NAME: "kotatogram/kotatogram-desktop"
+      REPO_NAME: "kotatogram-desktop"
+      REPO_CHECKOUT_NAME: "kotatogram/kotatogram-desktop"
       AUTO_CACHING: "1"
 
     steps:
@@ -28,7 +29,7 @@ jobs:
       - name: Clone.
         uses: actions/checkout@v2
         with:
-          repository: ${{ env.REPO_NAME }}
+          repository: ${{ env.REPO_CHECKOUT_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
           ref: ${{ github.event.client_payload.options.ref }}
@@ -320,10 +321,8 @@ jobs:
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=%UPDDEFINE% ^
           -DKTGDESKTOP_ENABLE_PACKER=%PACKERDEFINE% ^
           -DDESKTOP_APP_USE_PACKAGED=OFF ^
-          -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON ^
           -DDESKTOP_APP_ENABLE_IPO_OPTIMIZATIONS=OFF ^
-          %TDESKTOP_BUILD_DEFINE% ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
           cmake --build build
