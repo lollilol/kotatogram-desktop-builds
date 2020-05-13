@@ -82,7 +82,7 @@ jobs:
               }
 
               if (!builds.length) return all;
-              return builds;
+              return [...new Set(builds)];
             }
 
             function parseUpdate(s) {
