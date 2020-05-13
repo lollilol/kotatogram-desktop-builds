@@ -19,21 +19,28 @@ jobs:
               let pattern = /^([a-z]+):\s*(yes|no|true|false|enable|disable|on|off|0|1)$/gmi;
               let matches = pattern.exec(s);
               if (!matches || matches.length < 2) return -1;
-              
-              let nameMatches = namePattern.exec(matches[1]);
-              if (!nameMatches) return -1;
 
-              switch (matches[2]) {
-                case "yes":
-                case "true":
-                case "enable":
-                case "on":
-                case "1":
-                  return true;
+              while (matches != null) {
+                let nameMatches = namePattern.exec(matches[1]);
+                if (!nameMatches) {
+                  matches = pattern.exec(s);
+                  continue;
+                }
 
-                default:
-                  return false;
+                switch (matches[2].toLowerCase()) {
+                  case "yes":
+                  case "true":
+                  case "enable":
+                  case "on":
+                  case "1":
+                    return true;
+
+                  default:
+                    return false;
+                }
               }
+              
+              return -1;
             }
 
             function parseRef(s) {
