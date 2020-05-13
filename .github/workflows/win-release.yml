@@ -18,13 +18,10 @@ jobs:
       ONLY_CACHE: "false"
       MANUAL_CACHING: "2"
       DOC_PATH: "docs/building-msvc.md"
+      REPO_NAME: "kotatogram/kotatogram-desktop"
       AUTO_CACHING: "1"
 
     steps:
-      - name: Get repository name.
-        shell: bash
-        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
-
       - name: Clone.
         uses: actions/checkout@v2
         with:
