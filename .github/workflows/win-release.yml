@@ -336,7 +336,7 @@ jobs:
           cd $REPO_NAME
 
           version=${tag_name#k}
-          version=${version//-[[:digit:]]/}
+          version=${version//-[[:digit:]]*/}
           artifact_name=$version.tar.xz
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
