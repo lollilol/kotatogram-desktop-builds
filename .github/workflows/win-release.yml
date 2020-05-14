@@ -370,6 +370,10 @@ jobs:
         if: >
           env.ONLY_CACHE == 'false'
           && github.event.client_payload.options.telegram
+        env:
+          TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
+          TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
+          TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
         run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
 
       - name: Parse built version.
@@ -423,4 +427,8 @@ jobs:
           && github.event.client_payload.options.update
           && github.event.client_payload.options.packer
           && github.event.client_payload.options.telegram
+        env:
+          TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
+          TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
+          TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
         run: python buildscripts/scripts/uploader.py "@ktghbcfiles" "${{ env.REPO_NAME }}/tupdate${{ env.PACKER_VERSION }}"
