@@ -63,6 +63,11 @@ Aliases: `upload to tg`, `uploads to telegram`, `uploads to tg`, `telegram`, `tg
 
 Boolean parameter. If enabled:
 
-* uploads built binaries to [@ktgbuilds](https://t.me/ktgbuilds);
+* uploads built binaries to [@ktgbuilds](https://t.me/ktgbuilds) (including installers);
 * uploads update files to [@ktghbcfiles](https://t.me/ktghbcfiles) if autoupdater and packer enabled.
 
+### Installer
+
+Aliases: `install`.
+
+Boolean parameter to package binaries into installer file. Effective only on Windows.

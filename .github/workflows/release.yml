@@ -103,6 +103,12 @@ jobs:
               return (result == -1 ? false : result)
             }
 
+            function parseInstaller(s) {
+              let namePattern = /^install(?:er)?$/i;
+              let result = parseBoolOption(s, namePattern);
+              return (result == -1 ? false : result)
+            }
+
             console.log("Current description:");
             console.log(context.payload.release.body);
 
@@ -113,6 +119,7 @@ jobs:
               update: parseUpdate(context.payload.release.body),
               packer: parsePacker(context.payload.release.body),
               telegram: parseTelegramUploader(context.payload.release.body),
+              installer: parseInstaller(context.payload.release.body),
             };
             
             console.log("Parsed parameters:");

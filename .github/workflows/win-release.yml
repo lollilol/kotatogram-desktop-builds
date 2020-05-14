@@ -34,6 +34,21 @@ jobs:
           path: ${{ env.REPO_NAME }}
           ref: ${{ github.event.client_payload.options.ref }}
 
+      - name: Parse current version.
+        shell: bash
+        run: |
+          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
+          _VERSIONSTR=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersionStr " | awk '{print $5}' | sed 's/.$//')
+          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
+          _BETA_SWITCH=""
+          _VERSIONSTRFULL=${_VERSIONSTR}
+          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
+          test $(awk -F"." '{print NF-1}' <<< "${_VERSIONSTR}") < 2 && _VERSIONSTRFULL="${_VERSIONSTR}.0"
+          echo "::set-env name=PACKER_VERSION::${_VERSION}"
+          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+          echo "::set-env name=INSTALLER_VERSION::${_VERSIONSTR}"
+          echo "::set-env name=INSTALLER_VERSION_FULL::${_VERSIONSTRFULL}"
+
       - name: Clone scripts.
         if: >
           env.ONLY_CACHE == 'false'
@@ -385,19 +400,42 @@ jobs:
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
         run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
 
-      - name: Parse built version.
+      - name: Make installer.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-        shell: bash
-        run: |
-          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
-          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
-          _BETA_SWITCH=""
-          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
-          echo "::set-env name=PACKER_VERSION::${_VERSION}"
-          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+          && github.event.client_payload.options.installer
+        run: >
+          iscc
+          /DReleasePath=$REPO_NAME\build\bin
+          /DMyAppVersion=${{ env.INSTALLER_VERSION }}
+          /DMyAppVersionFull=${{ env.INSTALLER_VERSION_FULL }}
+          "$REPO_NAME\Telegram\build\setup.iss"
+
+      - name: Upload installer asset.
+        id: upload-installer-asset
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.release_url
+          && github.event.client_payload.options.installer
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.options.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/build/bin/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe
+          asset_name: ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload installer to Telegram.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+          && github.event.client_payload.options.installer
+        env:
+          TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
+          TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
+          TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
+        run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/build/bin/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe"
 
       - name: Package update.
         if: >
