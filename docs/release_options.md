@@ -37,7 +37,7 @@ Specfies a platform to build.
 
 Values:
 * `appimage`/`linux` – AppImage build 
-* `win`/`windows` – Windows build (not ready yet)
+* `win`/`windows` – Windows build
 
 This option supports multiple values, separated by comma, like this:
 
@@ -56,4 +56,13 @@ Boolean parameter, enables in-app autoupdater and packs updater in archive on `t
 Aliases: `pack`, `packager`.
 
 Boolean parameter, packages build in autoupdater format on `true`. Disabled by default. Has no effect if autoupdater is disabled.
+
+### Upload to Telegram
+
+Aliases: `upload to tg`, `uploads to telegram`, `uploads to tg`, `telegram`, `tg`, `telegram upload`, `tg upload`, `telegram uploads`, `tg uploads`.
+
+Boolean parameter. If enabled:
+
+* uploads built binaries to [@ktgbuilds](https://t.me/ktgbuilds);
+* uploads update files to [@ktghbcfiles](https://t.me/ktghbcfiles) if autoupdater and packer enabled.
 
