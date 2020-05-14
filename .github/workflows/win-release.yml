@@ -345,7 +345,7 @@ jobs:
 
           version=${tag_name#k}
           version=${version//-[[:digit:]]*/}
-          artifact_name=$version.tar.xz
+          artifact_name=$version.zip
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
           mkdir -p artifact/Kotatogram
@@ -353,7 +353,7 @@ jobs:
           mv build/bin/Updater.exe artifact/Kotatogram
 
           cd artifact
-          tar -caf $artifact_name Kotatogram
+          7z a $artifact_name Kotatogram
 
       - name: Upload release asset.
         id: upload-release-asset
