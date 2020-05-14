@@ -499,36 +499,26 @@ jobs:
         if: >
           github.event.client_payload.options.update
           && github.event.client_payload.options.packer
-        shell: python3 {0}
         run: |
-          import os
-          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
-          os.mkdir(p)
-          os.chdir(p)
+          cd $REPO_NAME/..
+          mkdir DesktopPrivate
+          cd DesktopPrivate
 
-          keys_contents = r"""
-          const char *PrivateKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
+          echo "
+          const char *PrivateKey = \"\\
+          -----BEGIN RSA PRIVATE KEY-----\\n\\
           ${{ secrets.PACKER_PRIVATE_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
+          -----END RSA PRIVATE KEY-----\\
+          \";
 
-          const char *PrivateBetaKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
+          const char *PrivateBetaKey = \"\\
+          -----BEGIN RSA PRIVATE KEY-----\\n\\
           ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
-          """
+          -----END RSA PRIVATE KEY-----\\
+          \";
+          " > packer_private.h
 
-          alpha_contents = r"""
-          const char *AlphaPrivateKey = "";
-          """
-
-          with open("packer_private.h", "w", encoding="utf-8") as f:
-              f.write(keys_contents)
-
-          with open("alpha_private.h", "w", encoding="utf-8") as f:
-              f.write(alpha_contents)
+          echo "\nconst char *AlphaPrivateKey = \"\";\n" > alpha_private.h
 
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
