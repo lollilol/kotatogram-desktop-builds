@@ -16,7 +16,7 @@ jobs:
           github-token: ${{ secrets.RELEASE_TOKEN }}
           script: |
             function parseBoolOption(s, namePattern) {
-              let pattern = /^([a-z]+):\s*(yes|no|true|false|enabled?|disabled?|on|off|0|1)$/gmi;
+              let pattern = /^([a-z ]+):\s*(yes|no|true|false|enabled?|disabled?|on|off|0|1)$/gmi;
               let matches = pattern.exec(s);
               if (!matches || matches.length < 2) return -1;
 
@@ -97,6 +97,12 @@ jobs:
               return (result == -1 ? false : result)
             }
 
+            function parseTelegramUploader(s) {
+              let namePattern = /^(?:uploads?\s+to\s+)?(?:telegram|tg)(?:\s+uploads?)?$/i;
+              let result = parseBoolOption(s, namePattern);
+              return (result == -1 ? false : result)
+            }
+
             console.log("Current description:");
             console.log(context.payload.release.body);
 
@@ -106,6 +112,7 @@ jobs:
               release_url: context.payload.release.upload_url,
               update: parseUpdate(context.payload.release.body),
               packer: parsePacker(context.payload.release.body),
+              telegram: parseTelegramUploader(context.payload.release.body),
             };
             
             console.log("Parsed parameters:");
