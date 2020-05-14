@@ -69,6 +69,14 @@ jobs:
           path: ${{ env.REPO_NAME }}
           ref: ${{ github.event.client_payload.options.ref }}
 
+      - name: Clone scripts.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        uses: actions/checkout@v2
+        with:
+          path: buildscripts
+
       - name: First set up.
         shell: bash
         run: |
@@ -628,14 +636,6 @@ jobs:
           && github.event.client_payload.options.telegram
         run: |
           python3 -m pip install telethon cryptg
-
-      - name: Clone scripts.
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
-        uses: actions/checkout@v2
-        with:
-          path: buildscripts
 
       - name: Upload binary to Telegram.
         if: >
