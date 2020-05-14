@@ -622,6 +622,27 @@ jobs:
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream
 
+      - name: Install dependencies for Telegram uploader.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        run: |
+          python3 -m pip install telethon cryptg
+
+      - name: Clone scripts.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        uses: actions/checkout@v2
+        with:
+          path: buildscripts
+
+      - name: Upload binary to Telegram.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        run: python3 buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+
       - name: Parse built version.
         if: >
           env.ONLY_CACHE == 'false'
@@ -665,3 +686,11 @@ jobs:
           asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
           asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
           asset_content_type: application/octet-stream
+
+      - name: Upload update to Telegram.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+          && github.event.client_payload.options.telegram
+        run: python3 buildscripts/scripts/uploader.py "@ktghbcfiles" "${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}"
