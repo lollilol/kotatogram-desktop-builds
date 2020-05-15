@@ -568,6 +568,7 @@ jobs:
 
       - name: AppImage build.
         if: env.ONLY_CACHE == 'false'
+        shell: bash
         env:
           tag_name: ${{ github.event.client_payload.options.display_version }}
         run: |
