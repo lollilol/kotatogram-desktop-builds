@@ -404,6 +404,7 @@ jobs:
         if: >
           env.ONLY_CACHE == 'false'
           && github.event.client_payload.options.installer
+        shell: cmd
         run: >
           iscc
           /DReleasePath=%cd%\${{ env.REPO_NAME }}\build\bin
