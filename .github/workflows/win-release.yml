@@ -407,7 +407,7 @@ jobs:
         shell: cmd
         run: >
           iscc
-          /DReleasePath=%cd%\${{ env.REPO_NAME }}\build\bin
+          /DReleasePath=%cd%\${{ env.REPO_NAME }}\artifact\Kotatogram
           /DMyAppVersion=${{ env.INSTALLER_VERSION }}
           /DMyAppVersionFull=${{ env.INSTALLER_VERSION_FULL }}
           "%cd%\${{ env.REPO_NAME }}\Telegram\build\setup.iss"
@@ -423,7 +423,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/build/bin/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe
+          asset_path: ./${{ env.REPO_NAME }}/artifact/Kotatogram/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe
           asset_name: ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe
           asset_content_type: application/octet-stream
 
@@ -436,7 +436,7 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/build/bin/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe"
+        run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/Kotatogram/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe"
 
       - name: Package update.
         if: >
