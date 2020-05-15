@@ -43,11 +43,11 @@ jobs:
           _BETA_SWITCH=""
           _VERSIONSTRFULL=${_VERSIONSTR}
           test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
-          test $(awk -F"." '{print NF-1}' <<< "${_VERSIONSTR}") < 2 && _VERSIONSTRFULL="${_VERSIONSTR}.0"
+          test $(awk -F"." '{print NF-1}' <<< "${_VERSIONSTR}") < 2 && _VERSIONSTRFULL="${_VERSIONSTR:1:-1}.0"
           echo "::set-env name=PACKER_VERSION::${_VERSION}"
           echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
-          echo "::set-env name=INSTALLER_VERSION::${_VERSIONSTR}"
-          echo "::set-env name=INSTALLER_VERSION_FULL::${_VERSIONSTRFULL}"
+          echo "::set-env name=INSTALLER_VERSION::${_VERSIONSTR:1:-1}"
+          echo "::set-env name=INSTALLER_VERSION_FULL::${_VERSIONSTRFULL:1:-1}"
 
       - name: Clone scripts.
         if: >
