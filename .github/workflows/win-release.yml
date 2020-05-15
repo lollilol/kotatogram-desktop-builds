@@ -406,10 +406,10 @@ jobs:
           && github.event.client_payload.options.installer
         run: >
           iscc
-          /DReleasePath=$REPO_NAME\build\bin
+          /DReleasePath=%cd%\${{ env.REPO_NAME }}\build\bin
           /DMyAppVersion=${{ env.INSTALLER_VERSION }}
           /DMyAppVersionFull=${{ env.INSTALLER_VERSION_FULL }}
-          "$REPO_NAME\Telegram\build\setup.iss"
+          "%cd%\${{ env.REPO_NAME }}\Telegram\build\setup.iss"
 
       - name: Upload installer asset.
         id: upload-installer-asset
