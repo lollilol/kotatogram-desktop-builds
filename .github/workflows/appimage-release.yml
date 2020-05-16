@@ -13,6 +13,12 @@ jobs:
       image: ubuntu:trusty
       options: --privileged --device /dev/fuse
 
+    strategy:
+      matrix:
+        defines:
+          - ""
+          - "KTGDESKTOP_APPIMAGE_BUILD"
+
     env:
       GIT: "https://github.com"
       QT: "5_12_8"
@@ -546,6 +552,12 @@ jobs:
         run: |
           cd $REPO_NAME/Telegram
 
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+          fi
+
           UPDDEFINE="OFF"
           ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
 
@@ -560,7 +572,8 @@ jobs:
           -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
+          $DEFINE
 
           cd ../out/Release
           cmake --build . -- -j$(nproc)
@@ -611,7 +624,12 @@ jobs:
           cd $REPO_NAME
 
           mkdir -p artifact/Kotatogram
-          mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
+          TARGET_NAME="Kotatogram.AppImage"
+          if [ -n "${{ matrix.defines }}" ]; then
+            TARGET_NAME="Kotatogram"
+          fi
+          mv $APPIMAGE_NAME artifact/Kotatogram/$TARGET_NAME
+          echo "::set-env name=TARGET_ARTIFACT::$TARGET_NAME"
           ${{ github.event.client_payload.options.update }} && mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
@@ -674,11 +692,17 @@ jobs:
           cd $REPO_NAME
 
           ./out/Release/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
-          -path artifact/Kotatogram/Kotatogram.AppImage \
+          -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -path artifact/Kotatogram/Updater
-          
-          mv tlinuxupd${{ env.PACKER_VERSION }} tappimageupd${{ env.PACKER_VERSION }}
-          tar -caf tappimageupd${{ env.PACKER_VERSION }}.tar.xz tappimageupd${{ env.PACKER_VERSION }}
+
+          if [ -n "${{ matrix.defines }}" ]; then
+            tar -caf tlinuxupd${{ env.PACKER_VERSION }}.tar.xz tlinuxupd${{ env.PACKER_VERSION }}
+            echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.PACKER_VERSION }}"
+          else
+            mv tlinuxupd${{ env.PACKER_VERSION }} tappimageupd${{ env.PACKER_VERSION }}
+            tar -caf tappimageupd${{ env.PACKER_VERSION }}.tar.xz tappimageupd${{ env.PACKER_VERSION }}
+            echo "::set-env name=UPDATE_FILE::tappimageupd${{ env.PACKER_VERSION }}"
+          fi
 
       - name: Upload update asset.
         id: upload-update-asset
@@ -692,8 +716,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}.tar.xz
-          asset_name: tappimageupd${{ env.PACKER_VERSION }}.tar.xz
+          asset_path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}.tar.xz
+          asset_name: ${{ env.UPDATE_FILE }}.tar.xz
           asset_content_type: application/octet-stream
 
       - name: Upload update to Telegram.
@@ -709,5 +733,5 @@ jobs:
         run: >
           python3 buildscripts/scripts/uploader.py
           "@ktghbcfiles"
-          "${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}"
+          "${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}"
           "${{ github.event.client_payload.options.description }}"
