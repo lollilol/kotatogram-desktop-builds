@@ -3,11 +3,9 @@
 When creating a release, it will make all release builds from `master` branch. If you want to change the way it builds, you can specify options in release description:
 
 ```
-
 Branch: dev
 Updater: yes
 Packer: false
-
 ```
 
 Boolean options (like `Updater` and `Packer`) support multiple variants of setting its options: 
@@ -20,6 +18,20 @@ Boolean options (like `Updater` and `Packer`) support multiple variants of setti
 * `0`/`1`
 
 They are also case-insensitive, like any option name and values.
+
+You can also specify an optional description, like this:
+
+```
+This is an optional description for release.
+
+And some more description.
+
+Branch: dev
+Updater: yes
+Packer: false
+```
+
+Please note that parameters should always be **in the end of description** and should be **separated by empty line**.
 
 ## Supported options
 

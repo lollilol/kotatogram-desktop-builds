@@ -646,7 +646,11 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python3 buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+        run: >
+          python3 buildscripts/scripts/uploader.py
+          "@ktgbuilds"
+          "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+          "${{ github.event.client_payload.options.description }}"
 
       - name: Parse built version.
         if: >
@@ -702,4 +706,8 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python3 buildscripts/scripts/uploader.py "@ktghbcfiles" "${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}"
+        run: >
+          python3 buildscripts/scripts/uploader.py
+          "@ktghbcfiles"
+          "${{ env.REPO_NAME }}/tappimageupd${{ env.PACKER_VERSION }}"
+          "${{ github.event.client_payload.options.description }}"

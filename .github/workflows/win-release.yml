@@ -398,7 +398,11 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+        run: >
+          python buildscripts/scripts/uploader.py
+          "@ktgbuilds"
+          "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+          "${{ github.event.client_payload.options.description }}"
 
       - name: Make installer.
         if: >
@@ -436,7 +440,11 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python buildscripts/scripts/uploader.py "@ktgbuilds" "${{ env.REPO_NAME }}/artifact/Kotatogram/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe"
+        run: >
+          python buildscripts/scripts/uploader.py
+          "@ktgbuilds"
+          "${{ env.REPO_NAME }}/artifact/Kotatogram/ksetup.${{ env.INSTALLER_VERSION_FULL }}.exe"
+          "${{ github.event.client_payload.options.description }}"
 
       - name: Package update.
         if: >
@@ -479,4 +487,8 @@ jobs:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
           TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
-        run: python buildscripts/scripts/uploader.py "@ktghbcfiles" "${{ env.REPO_NAME }}/tupdate${{ env.PACKER_VERSION }}"
+        run: >
+          python buildscripts/scripts/uploader.py
+          "@ktghbcfiles"
+          "${{ env.REPO_NAME }}/tupdate${{ env.PACKER_VERSION }}"
+          "${{ github.event.client_payload.options.description }}"

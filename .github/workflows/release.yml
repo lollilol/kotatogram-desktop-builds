@@ -112,14 +112,25 @@ jobs:
             console.log("Current description:");
             console.log(context.payload.release.body);
 
+            let descriptionArray = context.payload.release.body.trim().split("\n\n");
+            let [description, params] = ["", ""];
+
+            if (descriptionArray.length == 1) {
+              params = descriptionArray[0].trim();
+            } else if (descriptionArray.length >= 2) {
+              params = descriptionArray[descriptionArray.length-1].trim();
+              description = descriptionArray.slice(0, -1).join("\n\n").trim();
+            }
+
             let requestParams = {
-              ref: parseRef(context.payload.release.body),
+              ref: parseRef(params),
               display_version: context.payload.release.tag_name,
               release_url: context.payload.release.upload_url,
-              update: parseUpdate(context.payload.release.body),
-              packer: parsePacker(context.payload.release.body),
-              telegram: parseTelegramUploader(context.payload.release.body),
-              installer: parseInstaller(context.payload.release.body),
+              update: parseUpdate(params),
+              packer: parsePacker(params),
+              telegram: parseTelegramUploader(params),
+              installer: parseInstaller(params),
+              description: description,
             };
             
             console.log("Parsed parameters:");
