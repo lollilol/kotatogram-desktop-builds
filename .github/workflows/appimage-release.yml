@@ -598,6 +598,9 @@ jobs:
           version=${version//-[[:digit:]]*/}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           artifact_name=$version-appimage.tar.xz
+          if [ -n "${{ matrix.defines }}" ]; then
+            artifact_name=$version.tar.xz
+          fi
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
