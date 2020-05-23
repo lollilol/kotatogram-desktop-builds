@@ -6,7 +6,7 @@ from telethon.sessions import StringSession
 
 def upload(api_id, api_hash, session, target, file, description = ""):
     with TelegramClient(StringSession(session), api_id, api_hash) as client:
-        client.send_file(target, file, description)
+        client.send_file(target, file, caption=description)
 
 if __name__ == '__main__':
     if len(sys.argv) <= 2:
