@@ -102,8 +102,8 @@ module.exports = ({github, context}) => {
 	if (descriptionArray.length == 1) {
 		params = descriptionArray[0].trim();
 	} else if (descriptionArray.length >= 2) {
-		params = descriptionArray[descriptionArray.length-1].trim();
-		description = descriptionArray.slice(0, -1).join("\n\n").trim();
+		params = descriptionArray.pop().trim();
+		description = descriptionArray.join("\n\n").trim();
 	}
 
 	let requestParams = {
