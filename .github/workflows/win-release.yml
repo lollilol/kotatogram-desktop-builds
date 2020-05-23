@@ -108,7 +108,6 @@ jobs:
           git clone %GIT%/telegramdesktop/lzma.git
           cd lzma
           cd C\Util\LzmaLib
-          msbuild -m LzmaLib.sln /property:Configuration=Debug
           msbuild -m LzmaLib.sln /property:Configuration=Release
 
       - name: OpenSSL cache.
@@ -126,14 +125,6 @@ jobs:
           git clone %GIT%/openssl/openssl.git openssl_%OPENSSL_VER%
           cd openssl_%OPENSSL_VER%
           git checkout OpenSSL_%OPENSSL_VER%-stable
-          perl Configure no-shared debug-VC-WIN32
-          nmake
-          mkdir out32.dbg
-          move libcrypto.lib out32.dbg
-          move libssl.lib out32.dbg
-          move ossl_static.pdb out32.dbg\ossl_static
-          nmake clean
-          move out32.dbg\ossl_static out32.dbg\ossl_static.pdb
           perl Configure no-shared VC-WIN32
           nmake
           mkdir out32
@@ -153,7 +144,6 @@ jobs:
           cd zlib
           git checkout tdesktop
           cd contrib\vstudio\vc14
-          msbuild -m zlibstat.vcxproj /property:Configuration=Debug
           msbuild -m zlibstat.vcxproj /property:Configuration=ReleaseWithoutAsm
 
       - name: OpenAL Soft cache.
@@ -178,7 +168,6 @@ jobs:
           -D LIBTYPE:STRING=STATIC ^
           -D FORCE_STATIC_VCRT:STRING=ON ..
 
-          msbuild -m OpenAL.vcxproj /property:Configuration=Debug
           msbuild -m OpenAL.vcxproj /property:Configuration=Release
 
       - name: Opus cache.
@@ -197,7 +186,6 @@ jobs:
           cd opus
           git checkout tdesktop
           cd win32\VS2015
-          msbuild -m opus.sln /property:Configuration=Debug /property:Platform="Win32"
           msbuild -m opus.sln /property:Configuration=Release /property:Platform="Win32"
 
       - name: FFmpeg cache.
@@ -256,7 +244,6 @@ jobs:
           -static-runtime -I "%SSL%\include" ^
           -no-opengl ^
           -openssl-linked ^
-          OPENSSL_LIBS_DEBUG="%SSL%\out32.dbg\libssl.lib %SSL%\out32.dbg\%LIBS%" ^
           OPENSSL_LIBS_RELEASE="%SSL%\out32\libssl.lib %SSL%\out32\%LIBS%" ^
           -mp ^
           -nomake examples ^
