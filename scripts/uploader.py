@@ -16,5 +16,5 @@ if __name__ == '__main__':
     api_id = int(os.environ['TELETHON_API_ID'])
     api_hash = os.environ['TELETHON_API_HASH']
     session = os.environ['TELETHON_SESSION']
-    description = sys.argv[3] if len(sys.argv) > 2 else ""
+    description = sys.argv[3] if len(sys.argv) > 3 else ""
     upload(api_id, api_hash, session, sys.argv[1], sys.argv[2], description)
