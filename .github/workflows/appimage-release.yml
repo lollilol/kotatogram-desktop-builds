@@ -607,7 +607,7 @@ jobs:
           version=${version//-[[:digit:]]*/}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           artifact_name=$version-appimage.tar.xz
-          if [ -n "${{ matrix.defines }}" ]; then
+          if [ ! -n "${{ matrix.defines }}" ]; then
             artifact_name=$version.tar.xz
           fi
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
@@ -637,7 +637,7 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           TARGET_NAME="Kotatogram.AppImage"
-          if [ -n "${{ matrix.defines }}" ]; then
+          if [ ! -n "${{ matrix.defines }}" ]; then
             TARGET_NAME="Kotatogram"
           fi
           mv $APPIMAGE_NAME artifact/Kotatogram/$TARGET_NAME
@@ -707,7 +707,7 @@ jobs:
           -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -path artifact/Kotatogram/Updater
 
-          if [ -n "${{ matrix.defines }}" ]; then
+          if [ ! -n "${{ matrix.defines }}" ]; then
             tar -caf tlinuxupd${{ env.PACKER_VERSION }}.tar.xz tlinuxupd${{ env.PACKER_VERSION }}
             echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.PACKER_VERSION }}"
           else
