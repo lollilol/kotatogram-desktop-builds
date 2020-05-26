@@ -1,4 +1,22 @@
 module.exports = ({github, context}) => {
+	function parseDescription(s) {
+		let pattern = /(?:((?:.|\n)*?)\n\n)/g;
+		let matches = pattern.exec(s);
+		if (!matches) return "";
+
+		let result = "";
+
+		while (matches != null) {
+			if (result) {
+				result += "\n\n";
+			}
+
+			result += matches[1];
+		}
+
+		return result;
+	}
+
 	function parseBoolOption(s, namePattern) {
 		let pattern = /^([a-z ]+):\s*(yes|no|true|false|enabled?|disabled?|on|off|0|1)$/gmi;
 		let matches = pattern.exec(s);
@@ -102,13 +120,12 @@ module.exports = ({github, context}) => {
 	console.log(context.payload.release.body);
 
 	let descriptionArray = context.payload.release.body.trim().split("\n\n");
-	let [description, params] = ["", ""];
+	let params = "";
 
 	if (descriptionArray.length == 1) {
 		params = descriptionArray[0].trim();
 	} else if (descriptionArray.length >= 2) {
 		params = descriptionArray.pop().trim();
-		description = descriptionArray.join("\n\n").trim();
 	}
 
 	let requestParams = {
@@ -119,7 +136,7 @@ module.exports = ({github, context}) => {
 		packer: parsePacker(params),
 		telegram: parseTelegramUploader(params),
 		installer: parseInstaller(params),
-		description: description,
+		description: parseDescription(context.payload.release.body),
 	};
 
 	console.log("Parsed parameters:");
