@@ -1,0 +1,357 @@
+name: Release MacOS.
+
+on:
+  repository_dispatch:
+    types: [build_mac]
+
+jobs:
+
+  macos:
+    name: MacOS
+    runs-on: macos-latest
+
+    env:
+      GIT: "https://github.com"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "3"
+      REPO_NAME: "kotatogram/kotatogram-desktop"
+      AUTO_CACHING: "1"
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.REPO_NAME }}
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+          ref: ${{ github.event.client_payload.options.ref }}
+
+      - name: Clone scripts.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        uses: actions/checkout@v2
+        with:
+          path: buildscripts
+
+      - name: First set up.
+        run: |
+          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt xz
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          xcodebuild -version > CACHE_KEY.txt
+          echo $MIN_MAC >> CACHE_KEY.txt
+          echo $PREFIX >> CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/mac-release.yml
+            echo `md5 -q $thisFile` >> CACHE_KEY.txt
+          fi
+          echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
+
+          echo ::add-path::$PWD/Libraries/depot_tools
+
+          mkdir -p Libraries/macos
+          cd Libraries/macos
+          echo ::set-env name=LibrariesPath::`pwd`
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg build.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
+          cd ffmpeg
+          ./configure \
+          --prefix=/usr/local/ffmpeg \
+          --disable-debug \
+          --disable-programs \
+          --disable-doc \
+          --disable-network \
+          --disable-autodetect \
+          --disable-everything \
+          --disable-iconv \
+          --enable-audiotoolbox \
+          --enable-videotoolbox \
+          --enable-libdav1d \
+          --enable-libopus \
+          --enable-protocol=file \
+          --enable-hwaccel=h264_videotoolbox \
+          --enable-hwaccel=hevc_videotoolbox \
+          --enable-hwaccel=mpeg1_videotoolbox \
+          --enable-hwaccel=mpeg2_videotoolbox \
+          --enable-hwaccel=mpeg4_videotoolbox \
+          --enable-decoder=aac \
+          --enable-decoder=aac_at \
+          --enable-decoder=aac_fixed \
+          --enable-decoder=aac_latm \
+          --enable-decoder=aasc \
+          --enable-decoder=alac \
+          --enable-decoder=alac_at \
+          --enable-decoder=flac \
+          --enable-decoder=gif \
+          --enable-decoder=h264 \
+          --enable-decoder=hevc \
+          --enable-decoder=libdav1d \
+          --enable-decoder=mp1 \
+          --enable-decoder=mp1float \
+          --enable-decoder=mp2 \
+          --enable-decoder=mp2float \
+          --enable-decoder=mp3 \
+          --enable-decoder=mp3adu \
+          --enable-decoder=mp3adufloat \
+          --enable-decoder=mp3float \
+          --enable-decoder=mp3on4 \
+          --enable-decoder=mp3on4float \
+          --enable-decoder=mpeg4 \
+          --enable-decoder=msmpeg4v2 \
+          --enable-decoder=msmpeg4v3 \
+          --enable-decoder=opus \
+          --enable-decoder=pcm_alaw \
+          --enable-decoder=pcm_alaw_at \
+          --enable-decoder=pcm_f32be \
+          --enable-decoder=pcm_f32le \
+          --enable-decoder=pcm_f64be \
+          --enable-decoder=pcm_f64le \
+          --enable-decoder=pcm_lxf \
+          --enable-decoder=pcm_mulaw \
+          --enable-decoder=pcm_mulaw_at \
+          --enable-decoder=pcm_s16be \
+          --enable-decoder=pcm_s16be_planar \
+          --enable-decoder=pcm_s16le \
+          --enable-decoder=pcm_s16le_planar \
+          --enable-decoder=pcm_s24be \
+          --enable-decoder=pcm_s24daud \
+          --enable-decoder=pcm_s24le \
+          --enable-decoder=pcm_s24le_planar \
+          --enable-decoder=pcm_s32be \
+          --enable-decoder=pcm_s32le \
+          --enable-decoder=pcm_s32le_planar \
+          --enable-decoder=pcm_s64be \
+          --enable-decoder=pcm_s64le \
+          --enable-decoder=pcm_s8 \
+          --enable-decoder=pcm_s8_planar \
+          --enable-decoder=pcm_u16be \
+          --enable-decoder=pcm_u16le \
+          --enable-decoder=pcm_u24be \
+          --enable-decoder=pcm_u24le \
+          --enable-decoder=pcm_u32be \
+          --enable-decoder=pcm_u32le \
+          --enable-decoder=pcm_u8 \
+          --enable-decoder=pcm_zork \
+          --enable-decoder=vorbis \
+          --enable-decoder=wavpack \
+          --enable-decoder=wmalossless \
+          --enable-decoder=wmapro \
+          --enable-decoder=wmav1 \
+          --enable-decoder=wmav2 \
+          --enable-decoder=wmavoice \
+          --enable-encoder=libopus \
+          --enable-parser=aac \
+          --enable-parser=aac_latm \
+          --enable-parser=flac \
+          --enable-parser=h264 \
+          --enable-parser=hevc \
+          --enable-parser=mpeg4video \
+          --enable-parser=mpegaudio \
+          --enable-parser=opus \
+          --enable-parser=vorbis \
+          --enable-demuxer=aac \
+          --enable-demuxer=flac \
+          --enable-demuxer=gif \
+          --enable-demuxer=h264 \
+          --enable-demuxer=hevc \
+          --enable-demuxer=m4v \
+          --enable-demuxer=mov \
+          --enable-demuxer=mp3 \
+          --enable-demuxer=ogg \
+          --enable-demuxer=wav \
+          --enable-muxer=ogg \
+          --enable-muxer=opus
+
+          make -j$(sysctl -n hw.logicalcpu)
+          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
+          cd ..
+          rm -rf ffmpeg
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R ffmpeg-cache/. /
+
+      - name: Setting up updater keys.
+        if: >
+          github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        shell: python3 {0}
+        run: |
+          import os
+          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
+          os.mkdir(p)
+          os.chdir(p)
+
+          keys_contents = r"""
+          const char *PrivateKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_KEY }}
+          -----END RSA PRIVATE KEY-----\
+          ";
+
+          const char *PrivateBetaKey = "\
+          -----BEGIN RSA PRIVATE KEY-----\n\
+          ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+          -----END RSA PRIVATE KEY-----\
+          ";
+          """
+
+          alpha_contents = r"""
+          const char *AlphaPrivateKey = "";
+          """
+
+          with open("packer_private.h", "w", encoding="utf-8") as f:
+              f.write(keys_contents)
+
+          with open("alpha_private.h", "w", encoding="utf-8") as f:
+              f.write(alpha_contents)
+
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
+        env:
+          PKG_CONFIG_PATH: /usr/local/ffmpeg/lib/pkgconfig
+          OPENALDIR: /usr/local/opt/openal-soft
+          OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+          Qt5_DIR: /usr/local/opt/qt/lib/cmake/Qt5
+        run: |
+          cd $REPO_NAME/Telegram
+          export PATH="/usr/local/opt/qt/bin:$PATH"
+
+          UPDDEFINE="OFF"
+          ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
+
+          PACKERDEFINE="ON"
+          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="OFF"
+
+          ./configure.sh \
+          -DCMAKE_FIND_FRAMEWORK=LAST \
+          -DCMAKE_LIBRARY_PATH=/usr/local/ffmpeg/lib \
+          -DTDESKTOP_API_TEST=ON \
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=${UPDDEFINE} \
+          -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
+          -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
+
+          cmake --build ../out --config Release
+
+          cd ../out/Release
+          macdeployqt Kotatogram.app
+          codesign --remove-signature Kotatogram.app
+
+          version=${tag_name#k}
+          version=${version//-[[:digit:]]*/}
+          artifact_name=$version.dmg
+          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+          mkdir dmgsrc
+          mv Kotatogram.app dmgsrc
+          hdiutil create -volname Kotatogram -srcfolder dmgsrc -ov -format UDZO $artifact_name
+
+      - name: Upload release asset.
+        id: upload-release-asset
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.release_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.options.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/out/Release/${{ env.ARTIFACT_NAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
+
+      - name: Install dependencies for Telegram uploader.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        run: |
+          python3 -m pip install telethon cryptg
+
+      - name: Upload binary to Telegram.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.telegram
+        env:
+          TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
+          TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
+          TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
+        run: >
+          python3 buildscripts/scripts/uploader.py
+          "@ktgbuilds"
+          "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+          "${{ github.event.client_payload.options.description }}"
+
+      - name: Parse built version.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        run: |
+          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
+          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
+          _BETA_SWITCH=""
+          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
+          echo "::set-env name=PACKER_VERSION::${_VERSION}"
+          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+
+      - name: Package update.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+        run: |
+          cd $REPO_NAME
+
+          ./out/Release/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
+          -target mac
+
+          tar -caf tmacupd${{ env.PACKER_VERSION }}.tar.xz tmacupd${{ env.PACKER_VERSION }}
+          echo "::set-env name=UPDATE_FILE::tmacupd${{ env.PACKER_VERSION }}"
+
+      - name: Upload update asset.
+        id: upload-update-asset
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+          && github.event.client_payload.options.release_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ github.event.client_payload.options.release_url }}
+          asset_path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}.tar.xz
+          asset_name: ${{ env.UPDATE_FILE }}.tar.xz
+          asset_content_type: application/octet-stream
+
+      - name: Upload update to Telegram.
+        if: >
+          env.ONLY_CACHE == 'false'
+          && github.event.client_payload.options.update
+          && github.event.client_payload.options.packer
+          && github.event.client_payload.options.telegram
+        env:
+          TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
+          TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
+          TELETHON_SESSION: ${{ secrets.TELETHON_SESSION }}
+        run: >
+          python3 buildscripts/scripts/uploader.py
+          "@ktghbcfiles"
+          "${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}"
+          "${{ github.event.client_payload.options.description }}"
