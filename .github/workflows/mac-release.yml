@@ -253,6 +253,7 @@ jobs:
           macdeployqt Kotatogram.app
           codesign --remove-signature Kotatogram.app
 
+          tag_name=${{ github.event.client_payload.options.display_version }}
           version=${tag_name#k}
           version=${version//-[[:digit:]]*/}
           artifact_name=$version.dmg
