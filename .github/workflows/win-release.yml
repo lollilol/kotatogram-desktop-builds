@@ -349,11 +349,10 @@ jobs:
       - name: Move artifact.
         if: env.ONLY_CACHE == 'false'
         shell: bash
-        env:
-          tag_name: ${{ github.event.client_payload.options.display_version }}
         run: |
           cd $REPO_NAME
 
+          tag_name=${{ github.event.client_payload.options.display_version }}
           version=${tag_name#k}
           version=${version//-[[:digit:]]*/}
           artifact_name=$version.zip
