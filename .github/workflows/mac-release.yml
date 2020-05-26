@@ -319,7 +319,7 @@ jobs:
         run: |
           cd $REPO_NAME
 
-          ./out/Release/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          ./out/Release/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
           -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -target mac
 
