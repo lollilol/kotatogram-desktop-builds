@@ -101,7 +101,9 @@ module.exports = ({github, context}) => {
 	console.log("Current description:");
 	console.log(context.payload.release.body);
 
-	let descriptionArray = context.payload.release.body.trim().split("\n\n");
+	let fullDescription = context.payload.release.body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+	let descriptionArray = fullDescription.trim().split("\n\n");
 	let [description, params] = ["", ""];
 
 	if (descriptionArray.length == 1) {
@@ -125,7 +127,7 @@ module.exports = ({github, context}) => {
 	console.log("Parsed parameters:");
 	console.log(requestParams);
 
-	let builds = parseBuild(context.payload.release.body);
+	let builds = parseBuild(fullDescription);
 
 	console.log("Builds:");
 	console.log(builds);
