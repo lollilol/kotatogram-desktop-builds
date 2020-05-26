@@ -17,6 +17,7 @@ jobs:
       REPO_NAME: "kotatogram/kotatogram-desktop"
       AUTO_CACHING: "1"
 
+    steps:
       - name: Clone.
         uses: actions/checkout@v2
         with:
