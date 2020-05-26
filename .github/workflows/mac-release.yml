@@ -249,7 +249,7 @@ jobs:
           -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
           -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
 
-          cmake --build ../out --config Release
+          cmake --build ../out --config Release -- -quiet
 
           cd ../out/Release
           macdeployqt Kotatogram.app
