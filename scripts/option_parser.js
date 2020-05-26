@@ -136,7 +136,7 @@ module.exports = ({github, context}) => {
 		packer: parsePacker(params),
 		telegram: parseTelegramUploader(params),
 		installer: parseInstaller(params),
-		description: parseDescription(context.payload.release.body),
+		description: context.payload.release.body,
 	};
 
 	console.log("Parsed parameters:");
