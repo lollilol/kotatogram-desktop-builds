@@ -295,7 +295,7 @@ jobs:
         run: >
           python3 buildscripts/scripts/uploader.py
           "@ktgbuilds"
-          "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
+          "${{ env.REPO_NAME }}/out/Release/${{ env.ARTIFACT_NAME }}"
           "${{ github.event.client_payload.options.description }}"
 
       - name: Parse built version.
@@ -320,7 +320,7 @@ jobs:
           cd $REPO_NAME
 
           ./out/Release/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
-          -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
+          -path out/Release/dmgsrc/Kotatogram.app \
           -target mac
 
           tar -caf tmacupd${{ env.PACKER_VERSION }}.tar.xz tmacupd${{ env.PACKER_VERSION }}
