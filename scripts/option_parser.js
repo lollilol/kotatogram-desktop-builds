@@ -1,4 +1,9 @@
-module.exports = ({github, context}) => {
+module.exports = ({github, context, currentBuild}) => {
+	if (context.payload.ref.startsWith('/ref/tags/')) {
+		console.log("::set-output name=build::false");
+		return;
+	}
+
 	function parseBoolOption(s, namePattern) {
 		let pattern = /^([a-z ]+):\s*(yes|no|true|false|enabled?|disabled?|on|off|0|1)$/gmi;
 		let matches = pattern.exec(s);
@@ -98,10 +103,16 @@ module.exports = ({github, context}) => {
 		return (result == -1 ? false : result)
 	}
 
-	console.log("Current description:");
-	console.log(context.payload.release.body);
+	function parseCache(s) {
+		let namePattern = /^cache?$/i;
+		let result = parseBoolOption(s, namePattern);
+		return (result == -1 ? true : result)
+	}
 
-	let fullDescription = context.payload.release.body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+	console.log("Current description:");
+	console.log(context.payload.head_commit.message);
+
+	let fullDescription = context.payload.head_commit.message.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
 	let descriptionArray = fullDescription.trim().split("\n\n");
 	let [description, params] = ["", ""];
@@ -115,12 +126,11 @@ module.exports = ({github, context}) => {
 
 	let requestParams = {
 		ref: parseRef(params),
-		display_version: context.payload.release.tag_name,
-		release_url: context.payload.release.upload_url,
 		update: parseUpdate(params),
 		packer: parsePacker(params),
 		telegram: parseTelegramUploader(params),
 		installer: parseInstaller(params),
+		cache: parseCache(params),
 		description: description,
 	};
 
@@ -132,12 +142,25 @@ module.exports = ({github, context}) => {
 	console.log("Builds:");
 	console.log(builds);
 
+	let buildFound = false;
+
 	for (const build of builds) {
-		github.repos.createDispatchEvent({
-			owner: context.payload.repository.owner.login,
-			repo: context.payload.repository.name,
-			event_type: 'build_'+build,
-			client_payload: { options: requestParams },
-		});
+		if (build == currentBuild) {
+			buildFound = true;
+			break;
+		}
+	}
+
+	if (buildFound) {
+		console.log("::set-output name=build::true");
+		console.log("::set-output name=ref::"+requestParams.ref);
+		console.log("::set-output name=update::"+requestParams.update);
+		console.log("::set-output name=packer::"+requestParams.packer);
+		console.log("::set-output name=telegram::"+requestParams.telegram);
+		console.log("::set-output name=installer::"+requestParams.installer);
+		console.log("::set-output name=description::"+requestParams.description);
+		console.log("::set-output name=cache::"+requestParams.cache);
+	} else {
+		console.log("::set-output name=build::false");
 	}
 }

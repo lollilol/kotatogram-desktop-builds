@@ -1,14 +1,41 @@
 name: Release AppImage.
 
-on:
-  repository_dispatch:
-    types: [build_appimage]
+on: [push]
 
 jobs:
 
-  linux:
-    name: Ubuntu 14.04
+  check:
+    if: "!(contains(github.event.head_commit.message, '[skip ci]'))"
+    name: Parse parameters
     runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.parse.outputs.build }}
+      ref: ${{ steps.parse.outputs.ref }}
+      update: ${{ steps.parse.outputs.update }}
+      packer: ${{ steps.parse.outputs.packer }}
+      telegram: ${{ steps.parse.outputs.telegram }}
+      description: ${{ steps.parse.outputs.description }}
+      cache: ${{ steps.parse.outputs.cache }}
+
+    steps:
+      - name: Clone scripts.
+        uses: actions/checkout@v2
+      - name: Parse commit description
+        id: parse
+        uses: actions/github-script@0.9.0
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const path = require('path');
+            const currentBuild = "appimage";
+            const scriptPath = path.resolve('./scripts/option_parser.js');
+            require(scriptPath)({github, context, currentBuild});
+
+  build:
+    name: Build on Ubuntu 14.04
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.build == 'true'
     container:
       image: ubuntu:trusty
       options: --privileged --device /dev/fuse
@@ -73,15 +100,17 @@ jobs:
           repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
-          ref: ${{ github.event.client_payload.options.ref }}
+          ref: ${{ needs.check.outputs.ref }}
 
       - name: Clone scripts.
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
+        if: env.ONLY_CACHE == 'false'
         uses: actions/checkout@v2
         with:
           path: buildscripts
+
+      - name: Parse current version.
+        shell: bash
+        run: ./buildscripts/scripts/parse_version.sh
 
       - name: First set up.
         shell: bash
@@ -95,7 +124,7 @@ jobs:
           gcc --version > CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
-            thisFile=$REPO_NAME/.github/workflows/appimage-release.yml
+            thisFile=buildscripts/.github/workflows/appimage-release.yml
             echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
           fi
           md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
@@ -146,6 +175,7 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/python-cache
           key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
+
       - name: Python 3.8 build.
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
@@ -158,10 +188,20 @@ jobs:
           sudo make DESTDIR="$LibrariesPath/python-cache" install
           cd ..
           rm -rf cpython
+
       - name: Python 3.8 install.
         run: |
           cd $LibrariesPath
           sudo cp -R python-cache/. /
+
+      - name: Setting up updater keys.
+        if: >
+          needs.check.outputs.update
+          && needs.check.outputs.packer
+        env:
+          PACKER_PRIVATE_KEY: ${{ secrets.PACKER_PRIVATE_KEY }}
+          PACKER_PRIVATE_BETA_KEY: ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+        run: python3 buildscripts/scripts/updater_keys.py
 
       - name: CMake.
         run: |
@@ -525,41 +565,6 @@ jobs:
           cd ../..
           rm -rf Kvantum
 
-      - name: Setting up updater keys.
-        if: >
-          github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-        shell: python3 {0}
-        run: |
-          import os
-          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
-          os.mkdir(p)
-          os.chdir(p)
-
-          keys_contents = r"""
-          const char *PrivateKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
-          ${{ secrets.PACKER_PRIVATE_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
-
-          const char *PrivateBetaKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
-          ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
-          """
-
-          alpha_contents = r"""
-          const char *AlphaPrivateKey = "";
-          """
-
-          with open("packer_private.h", "w", encoding="utf-8") as f:
-              f.write(keys_contents)
-
-          with open("alpha_private.h", "w", encoding="utf-8") as f:
-              f.write(alpha_contents)
-
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
@@ -575,10 +580,10 @@ jobs:
           fi
 
           UPDDEFINE="OFF"
-          ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
+          ${{ needs.check.outputs.update }} || UPDDEFINE="ON"
 
           PACKERDEFINE="ON"
-          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="OFF"
+          ${{ needs.check.outputs.packer }} || PACKERDEFINE="OFF"
 
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
@@ -608,13 +613,10 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-          tag_name=${{ github.event.client_payload.options.display_version }}
-          version=${tag_name#k}
-          version=${version//-[[:digit:]]*/}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
-          artifact_name=$version-appimage.tar.xz
+          artifact_name=${{ env.VERSION_STR }}-appimage.tar.xz
           if [ ! -n "${{ matrix.defines }}" ]; then
-            artifact_name=$version.tar.xz
+            artifact_name=${{ env.VERSION_STR }}.tar.xz
           fi
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
@@ -643,41 +645,37 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           TARGET_NAME="Kotatogram.AppImage"
+          ARTIFACT_POSTFIX=" (AppImage)"
           if [ ! -n "${{ matrix.defines }}" ]; then
             TARGET_NAME="Kotatogram"
+            ARTIFACT_POSTFIX=" (Linux)"
           fi
           mv $APPIMAGE_NAME artifact/Kotatogram/$TARGET_NAME
           echo "::set-env name=TARGET_ARTIFACT::$TARGET_NAME"
-          ${{ github.event.client_payload.options.update }} && mv out/Release/bin/Updater artifact/Kotatogram
+          echo "::set-env name=ARTIFACT_POSTFIX::$ARTIFACT_POSTFIX"
+          ${{ needs.check.outputs.update }} && mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
           tar -caf $ARTIFACT_NAME Kotatogram
 
-      - name: Upload release asset.
-        id: upload-release-asset
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.release_url
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Upload artifact.
+        if: env.ONLY_CACHE == 'false'
+        uses: actions/upload-artifact@v2
         with:
-          upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
-          asset_name: ${{ env.ARTIFACT_NAME }}
-          asset_content_type: application/octet-stream
+          path: ./${{ env.REPO_NAME }}/artifact/Kotatogram
+          name: Binary${{ env.ARTIFACT_POSTFIX }}
 
       - name: Install dependencies for Telegram uploader.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.telegram
         run: |
           python3 -m pip install telethon cryptg
 
       - name: Upload binary to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.telegram
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -686,64 +684,45 @@ jobs:
           python3 buildscripts/scripts/uploader.py
           "@ktgbuilds"
           "${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}"
-          "${{ github.event.client_payload.options.description }}"
-
-      - name: Parse built version.
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-        run: |
-          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
-          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
-          _BETA_SWITCH=""
-          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
-          echo "::set-env name=PACKER_VERSION::${_VERSION}"
-          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+          "${{ needs.check.outputs.description }}"
 
       - name: Package update.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
         run: |
           cd $REPO_NAME
 
-          ./out/Release/bin/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          ./out/Release/bin/Packer -version ${{ env.VERSION_NUM }}${{ env.PACKER_BETA }} \
           -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -path artifact/Kotatogram/Updater
 
           if [ ! -n "${{ matrix.defines }}" ]; then
-            tar -caf tlinuxupd${{ env.PACKER_VERSION }}.tar.xz tlinuxupd${{ env.PACKER_VERSION }}
-            echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.PACKER_VERSION }}"
+            tar -caf tlinuxupd${{ env.VERSION_NUM }}.tar.xz tlinuxupd${{ env.VERSION_NUM }}
+            echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.VERSION_NUM }}"
           else
-            mv tlinuxupd${{ env.PACKER_VERSION }} tappimageupd${{ env.PACKER_VERSION }}
-            tar -caf tappimageupd${{ env.PACKER_VERSION }}.tar.xz tappimageupd${{ env.PACKER_VERSION }}
-            echo "::set-env name=UPDATE_FILE::tappimageupd${{ env.PACKER_VERSION }}"
+            mv tlinuxupd${{ env.VERSION_NUM }} tappimageupd${{ env.VERSION_NUM }}
+            tar -caf tappimageupd${{ env.VERSION_NUM }}.tar.xz tappimageupd${{ env.VERSION_NUM }}
+            echo "::set-env name=UPDATE_FILE::tappimageupd${{ env.VERSION_NUM }}"
           fi
 
-      - name: Upload update asset.
-        id: upload-update-asset
+      - name: Upload update artifact.
+        uses: actions/upload-artifact@v2
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-          && github.event.client_payload.options.release_url
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
         with:
-          upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}.tar.xz
-          asset_name: ${{ env.UPDATE_FILE }}.tar.xz
-          asset_content_type: application/octet-stream
+          path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}
+          name: Update file${{ env.ARTIFACT_POSTFIX }}
 
       - name: Upload update to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
+          && needs.check.outputs.telegram
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -752,4 +731,4 @@ jobs:
           python3 buildscripts/scripts/uploader.py
           "@ktghbcfiles"
           "${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}"
-          "${{ github.event.client_payload.options.description }}"
+          "${{ needs.check.outputs.description }}"

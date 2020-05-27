@@ -1,6 +1,6 @@
-# Release options
+# Options
 
-When creating a release, it will make all release builds from `master` branch. If you want to change the way it builds, you can specify options in release description:
+When making a commit, it will make all release builds from `master` branch. If you want to change the way it builds, you can specify options in commit description:
 
 ```
 Branch: dev
@@ -22,7 +22,7 @@ They are also case-insensitive, like any option name and values.
 You can also specify an optional description, like this:
 
 ```
-This is an optional description for release.
+This is an optional description for commit.
 
 And some more description.
 
@@ -32,6 +32,12 @@ Packer: false
 ```
 
 Please note that parameters should always be **in the end of description** and should be **separated by empty line**.
+
+**P.S.** If you want to trigger build without changing files, you can use empty commits:
+
+```sh
+git commit --allow-empty
+```
 
 ## Supported options
 
@@ -83,3 +89,7 @@ Boolean parameter. If enabled:
 Aliases: `install`.
 
 Boolean parameter to package binaries into installer file. Effective only on Windows.
+
+### Cache
+
+Boolean parameter to enable or disable caching. Enabled by default.

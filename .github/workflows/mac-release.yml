@@ -1,13 +1,40 @@
 name: Release MacOS.
 
-on:
-  repository_dispatch:
-    types: [build_mac]
+on: [push]
 
 jobs:
 
-  macos:
-    name: MacOS
+  check:
+    if: "!(contains(github.event.head_commit.message, '[skip ci]'))"
+    name: Parse parameters
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.parse.outputs.build }}
+      ref: ${{ steps.parse.outputs.ref }}
+      update: ${{ steps.parse.outputs.update }}
+      packer: ${{ steps.parse.outputs.packer }}
+      telegram: ${{ steps.parse.outputs.telegram }}
+      description: ${{ steps.parse.outputs.description }}
+      cache: ${{ steps.parse.outputs.cache }}
+
+    steps:
+      - name: Clone scripts.
+        uses: actions/checkout@v2
+      - name: Parse commit description
+        id: parse
+        uses: actions/github-script@0.9.0
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const path = require('path');
+            const currentBuild = "mac";
+            const scriptPath = path.resolve('./scripts/option_parser.js');
+            require(scriptPath)({github, context, currentBuild});
+
+  build:
+    name: Build on latest macOS
+    needs: check
+    if: needs.check.outputs.build == 'true'
     runs-on: macos-latest
 
     env:
@@ -24,15 +51,16 @@ jobs:
           repository: ${{ env.REPO_NAME }}
           submodules: recursive
           path: ${{ env.REPO_NAME }}
-          ref: ${{ github.event.client_payload.options.ref }}
+          ref: ${{ needs.check.outputs.ref }}
 
       - name: Clone scripts.
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
         uses: actions/checkout@v2
         with:
           path: buildscripts
+
+      - name: Parse current version.
+        shell: bash
+        run: ./buildscripts/scripts/parse_version.sh
 
       - name: First set up.
         run: |
@@ -44,7 +72,7 @@ jobs:
           echo $PREFIX >> CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
-            thisFile=$REPO_NAME/.github/workflows/mac-release.yml
+            thisFile=buildscripts/.github/workflows/mac-release.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
           fi
           echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
@@ -54,6 +82,15 @@ jobs:
           mkdir -p Libraries/macos
           cd Libraries/macos
           echo ::set-env name=LibrariesPath::`pwd`
+
+      - name: Setting up updater keys.
+        if: >
+          needs.check.outputs.update
+          && needs.check.outputs.packer
+        env:
+          PACKER_PRIVATE_KEY: ${{ secrets.PACKER_PRIVATE_KEY }}
+          PACKER_PRIVATE_BETA_KEY: ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
+        run: python3 buildscripts/scripts/updater_keys.py
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -184,41 +221,6 @@ jobs:
           cd $LibrariesPath
           sudo cp -R ffmpeg-cache/. /
 
-      - name: Setting up updater keys.
-        if: >
-          github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-        shell: python3 {0}
-        run: |
-          import os
-          p = os.environ["REPO_NAME"]+"/../DesktopPrivate"
-          os.mkdir(p)
-          os.chdir(p)
-
-          keys_contents = r"""
-          const char *PrivateKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
-          ${{ secrets.PACKER_PRIVATE_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
-
-          const char *PrivateBetaKey = "\
-          -----BEGIN RSA PRIVATE KEY-----\n\
-          ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
-          -----END RSA PRIVATE KEY-----\
-          ";
-          """
-
-          alpha_contents = r"""
-          const char *AlphaPrivateKey = "";
-          """
-
-          with open("packer_private.h", "w", encoding="utf-8") as f:
-              f.write(keys_contents)
-
-          with open("alpha_private.h", "w", encoding="utf-8") as f:
-              f.write(alpha_contents)
-
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
@@ -233,10 +235,10 @@ jobs:
           export PATH="/usr/local/opt/qt/bin:$PATH"
 
           UPDDEFINE="OFF"
-          ${{ github.event.client_payload.options.update }} || UPDDEFINE="ON"
+          ${{ needs.check.outputs.update }} || UPDDEFINE="ON"
 
           PACKERDEFINE="ON"
-          ${{ github.event.client_payload.options.packer }} || PACKERDEFINE="OFF"
+          ${{ needs.check.outputs.packer }} || PACKERDEFINE="OFF"
 
           ./configure.sh \
           -DCMAKE_FIND_FRAMEWORK=LAST \
@@ -256,41 +258,32 @@ jobs:
           macdeployqt Kotatogram.app
           codesign --remove-signature Kotatogram.app
 
-          tag_name=${{ github.event.client_payload.options.display_version }}
-          version=${tag_name#k}
-          version=${version//-[[:digit:]]*/}
-          artifact_name=$version.dmg
+          tag_name=${{ needs.check.outputs.display_version }}
+          artifact_name=${{ env.VERSION_STR }}.dmg
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
           mkdir dmgsrc
           mv Kotatogram.app dmgsrc
           hdiutil create -volname Kotatogram -srcfolder dmgsrc -ov -format UDZO $artifact_name
 
-      - name: Upload release asset.
-        id: upload-release-asset
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.release_url
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Upload artifact.
+        if: env.ONLY_CACHE == 'false'
+        uses: actions/upload-artifact@v2
         with:
-          upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/out/Release/${{ env.ARTIFACT_NAME }}
-          asset_name: ${{ env.ARTIFACT_NAME }}
-          asset_content_type: application/octet-stream
+          path: ./${{ env.REPO_NAME }}/out/Release/${{ env.ARTIFACT_NAME }}
+          name: Binary
 
       - name: Install dependencies for Telegram uploader.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.telegram
         run: |
           python3 -m pip install telethon cryptg
 
       - name: Upload binary to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.telegram
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -299,58 +292,39 @@ jobs:
           python3 buildscripts/scripts/uploader.py
           "@ktgbuilds"
           "${{ env.REPO_NAME }}/out/Release/${{ env.ARTIFACT_NAME }}"
-          "${{ github.event.client_payload.options.description }}"
-
-      - name: Parse built version.
-        if: >
-          env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-        run: |
-          _VERSION=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/kotato/version.h" | grep "AppKotatoVersion " | awk '{print $5}' | sed 's/.$//')
-          _ISBETA=$(cat "${{ env.REPO_NAME }}/Telegram/SourceFiles/core/version.h" | grep "AppBetaVersion " | awk '{print $5}' | sed 's/.$//')
-          _BETA_SWITCH=""
-          test "$_ISBETA" == "true" && _BETA_SWITCH=" -beta"
-          echo "::set-env name=PACKER_VERSION::${_VERSION}"
-          echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+          "${{ needs.check.outputs.description }}"
 
       - name: Package update.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
         run: |
           cd $REPO_NAME
 
-          ./out/Release/Packer -version ${{ env.PACKER_VERSION }}${{ env.PACKER_BETA }} \
+          ./out/Release/Packer -version ${{ env.VERSION_NUM }}${{ env.PACKER_BETA }} \
           -path out/Release/dmgsrc/Kotatogram.app \
           -target mac
 
-          tar -caf tmacupd${{ env.PACKER_VERSION }}.tar.xz tmacupd${{ env.PACKER_VERSION }}
-          echo "::set-env name=UPDATE_FILE::tmacupd${{ env.PACKER_VERSION }}"
+          tar -caf tmacupd${{ env.VERSION_NUM }}.tar.xz tmacupd${{ env.VERSION_NUM }}
+          echo "::set-env name=UPDATE_FILE::tmacupd${{ env.VERSION_NUM }}"
 
-      - name: Upload update asset.
-        id: upload-update-asset
+      - name: Upload update artifact.
+        uses: actions/upload-artifact@v2
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-          && github.event.client_payload.options.release_url
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
         with:
-          upload_url: ${{ github.event.client_payload.options.release_url }}
-          asset_path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}.tar.xz
-          asset_name: ${{ env.UPDATE_FILE }}.tar.xz
-          asset_content_type: application/octet-stream
+          path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}
+          name: Update file
 
       - name: Upload update to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && github.event.client_payload.options.update
-          && github.event.client_payload.options.packer
-          && github.event.client_payload.options.telegram
+          && needs.check.outputs.update
+          && needs.check.outputs.packer
+          && needs.check.outputs.telegram
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -359,4 +333,4 @@ jobs:
           python3 buildscripts/scripts/uploader.py
           "@ktghbcfiles"
           "${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}"
-          "${{ github.event.client_payload.options.description }}"
+          "${{ needs.check.outputs.description }}"
