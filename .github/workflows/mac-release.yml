@@ -71,6 +71,7 @@ jobs:
           echo $MIN_MAC >> CACHE_KEY.txt
           echo $PREFIX >> CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
             thisFile=buildscripts/.github/workflows/mac-release.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
