@@ -252,7 +252,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ${{ env.LibrariesPath }}/Qt-5.12.8
-          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8.diff') }}
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8/*') }}
       - name: Configure Qt 5.12.8.
         if: steps.cache-qt.outputs.cache-hit != 'true'
         shell: cmd
@@ -345,7 +345,7 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           mv build/bin/Kotatogram.exe artifact/Kotatogram
-          mv build/bin/Updater.exe artifact/Kotatogram
+          ${{ needs.check.outputs.update }} && mv build/bin/Updater.exe artifact/Kotatogram
 
           cd artifact
           7z a $artifact_name Kotatogram
