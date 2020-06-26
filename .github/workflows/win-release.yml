@@ -381,6 +381,7 @@ jobs:
         if: >
           env.ONLY_CACHE == 'false'
           && needs.check.outputs.installer
+          && needs.check.outputs.update
         shell: cmd
         run: >
           iscc
@@ -403,6 +404,7 @@ jobs:
           env.ONLY_CACHE == 'false'
           && needs.check.outputs.telegram
           && needs.check.outputs.installer
+          && needs.check.outputs.update
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
