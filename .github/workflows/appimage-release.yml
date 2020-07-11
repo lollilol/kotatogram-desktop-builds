@@ -145,7 +145,7 @@ jobs:
 
       - name: OpenSSL cache.
         id: cache-openssl
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: ${{ needs.check.outputs.cache }}
         with:
           path: ${{ env.LibrariesPath }}/openssl-cache
@@ -172,7 +172,7 @@ jobs:
 
       - name: Python 3.8 cache.
         id: cache-python
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: ${{ needs.check.outputs.cache }}
         with:
           path: ${{ env.LibrariesPath }}/python-cache
@@ -279,7 +279,7 @@ jobs:
 
       - name: Opus cache.
         id: cache-opus
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: ${{ needs.check.outputs.cache }}
         with:
           path: ${{ env.LibrariesPath }}/opus
@@ -301,7 +301,7 @@ jobs:
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: ${{ needs.check.outputs.cache }}
         with:
           path: ${{ env.LibrariesPath }}/ffmpeg-cache
@@ -482,7 +482,7 @@ jobs:
 
       - name: Qt 5.12.8 cache.
         id: cache-qt
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: ${{ needs.check.outputs.cache }}
         with:
           path: ${{ env.LibrariesPath }}/qt-cache
