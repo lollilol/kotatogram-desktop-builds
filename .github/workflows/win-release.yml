@@ -380,7 +380,7 @@ jobs:
           -DDESKTOP_APP_USE_PACKAGED=OFF ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
-          cmake --build build
+          cmake --build build -j1
 
       - name: Move artifact.
         if: env.ONLY_CACHE == 'false'
