@@ -39,6 +39,11 @@ jobs:
 
     env:
       GIT: "https://github.com"
+      PKG_CONFIG_PATH: /usr/local/ffmpeg/lib/pkgconfig
+      CMAKE_LIBRARY_PATH: /usr/local/ffmpeg/lib
+      OPENALDIR: /usr/local/opt/openal-soft
+      OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+      Qt5_DIR: /usr/local/opt/qt/lib/cmake/Qt5
       ONLY_CACHE: "false"
       MANUAL_CACHING: "1"
       REPO_NAME: "kotatogram/kotatogram-desktop"
@@ -64,7 +69,7 @@ jobs:
 
       - name: First set up.
         run: |
-          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt xz
+          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt yasm xz
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           xcodebuild -version > CACHE_KEY.txt
@@ -78,7 +83,7 @@ jobs:
           fi
           echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
 
-          echo ::add-path::$PWD/Libraries/depot_tools
+          echo ::add-path::/usr/local/opt/qt/bin
 
           mkdir -p Libraries/macos
           cd Libraries/macos
@@ -222,18 +227,35 @@ jobs:
           cd $LibrariesPath
           sudo cp -R ffmpeg-cache/. /
 
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}
+      - name: WebRTC.
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 $GIT/desktop-app/tg_owt.git
+          cd tg_owt
+
+          cmake -B build . \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DTG_OWT_PACKAGED_BUILD_FFMPEG_STATIC=ON
+
+          cmake --build build -j$(sysctl -n hw.logicalcpu)
+
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
-          PKG_CONFIG_PATH: /usr/local/ffmpeg/lib/pkgconfig
-          OPENALDIR: /usr/local/opt/openal-soft
-          OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
-          Qt5_DIR: /usr/local/opt/qt/lib/cmake/Qt5
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
+          tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
         run: |
           cd $REPO_NAME/Telegram
-          export PATH="/usr/local/opt/qt/bin:$PATH"
 
           UPDDEFINE="OFF"
           ${{ needs.check.outputs.update }} || UPDDEFINE="ON"
@@ -243,15 +265,12 @@ jobs:
 
           ./configure.sh \
           -DCMAKE_FIND_FRAMEWORK=LAST \
-          -DCMAKE_LIBRARY_PATH=/usr/local/ffmpeg/lib \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=${UPDDEFINE} \
           -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
-          -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
-          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
+          -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON
 
           cmake --build ../out --config Release
 

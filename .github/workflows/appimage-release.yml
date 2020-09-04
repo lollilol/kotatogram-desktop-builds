@@ -73,13 +73,12 @@ jobs:
           sudo add-apt-repository ppa:git-core/ppa -y && \
           sudo apt-get update && \
           sudo apt-get install libice-dev libsm-dev libicu-dev liblzma-dev zlib1g-dev \
-          git wget autoconf automake build-essential libtool pkg-config bison \
+          git wget autoconf automake build-essential libtool pkg-config bison yasm \
           libasound2-dev libpulse-dev portaudio19-dev libdrm-dev libfuse2 \
           libgtk-3-dev libgtk2.0-dev libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev \
-          libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
-          libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
-          libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libxcb-res0-dev libx11-xcb-dev \
-          libxrender-dev xutils-dev libva-dev libvdpau-dev unzip -y --force-yes && \
+          libffi-dev libxcb1-dev libxcb-keysyms1-dev libxcb-res0-dev libxcb-screensaver0-dev \
+          libxcb-xkb-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev \
+          xutils-dev libva-dev libvdpau-dev libjpeg-dev unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -153,7 +152,7 @@ jobs:
           git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
             $GIT/openssl/openssl $opensslDir
           cd $opensslDir
-          ./config
+          ./config no-tests
           make -j$(nproc)
           sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
@@ -219,7 +218,7 @@ jobs:
           git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           sudo cmake --install .
           cd ..
           rm -rf extra-cmake-modules
@@ -315,7 +314,6 @@ jobs:
           --disable-network \
           --disable-autodetect \
           --disable-everything \
-          --disable-neon \
           --disable-alsa \
           --disable-iconv \
           --enable-shared \
@@ -435,7 +433,7 @@ jobs:
           -DALSOFT_UTILS=OFF \
           -DALSOFT_CONFIG=OFF
 
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
 
@@ -545,8 +543,9 @@ jobs:
           cd kwindowsystem
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTING=OFF \
           -DKDE_INSTALL_LIBDIR=lib
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
           cd ..
@@ -559,16 +558,33 @@ jobs:
           git clone -b V0.15.3 --depth=1 $GIT/tsujan/Kvantum.git
           cd Kvantum/Kvantum
           cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           sudo cmake --install .
           cd ../..
           rm -rf Kvantum
+
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}
+      - name: WebRTC.
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone $GIT/desktop-app/tg_owt.git
+          cd tg_owt
+          cmake -B build . -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
 
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
+          tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
         run: |
           cd $REPO_NAME/Telegram
 
@@ -584,12 +600,10 @@ jobs:
           -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=${UPDDEFINE} \
           -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
-          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
-          -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON
 
           cd ../out/Release
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
       - name: AppImage build.
