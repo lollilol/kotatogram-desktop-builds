@@ -40,12 +40,6 @@ jobs:
       image: ubuntu:trusty
       options: --privileged --device /dev/fuse
 
-    strategy:
-      matrix:
-        defines:
-          - ""
-          - "KTGDESKTOP_APPIMAGE_BUILD"
-
     env:
       GIT: "https://github.com"
       QT: "5_12_8"
@@ -578,12 +572,6 @@ jobs:
         run: |
           cd $REPO_NAME/Telegram
 
-          DEFINE=""
-          if [ -n "${{ matrix.defines }}" ]; then
-            DEFINE="-D ${{ matrix.defines }}=ON"
-            echo Define from matrix: $DEFINE
-          fi
-
           UPDDEFINE="OFF"
           ${{ needs.check.outputs.update }} || UPDDEFINE="ON"
 
@@ -598,8 +586,7 @@ jobs:
           -DKTGDESKTOP_ENABLE_PACKER=${PACKERDEFINE} \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
-          $DEFINE
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
 
           cd ../out/Release
           cmake --build . -- -j$(nproc)
@@ -619,10 +606,7 @@ jobs:
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
-          artifact_name=${{ env.VERSION_STR }}-appimage.tar.xz
-          if [ ! -n "${{ matrix.defines }}" ]; then
-            artifact_name=${{ env.VERSION_STR }}.tar.xz
-          fi
+          artifact_name=${{ env.VERSION_STR }}.tar.xz
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
@@ -649,12 +633,8 @@ jobs:
           cd $REPO_NAME
 
           mkdir -p artifact/Kotatogram
-          TARGET_NAME="Kotatogram.AppImage"
-          ARTIFACT_POSTFIX=" (AppImage)"
-          if [ ! -n "${{ matrix.defines }}" ]; then
-            TARGET_NAME="Kotatogram"
-            ARTIFACT_POSTFIX=" (Linux)"
-          fi
+          TARGET_NAME="Kotatogram"
+          ARTIFACT_POSTFIX=" (Linux)"
           mv $APPIMAGE_NAME artifact/Kotatogram/$TARGET_NAME
           echo "::set-env name=TARGET_ARTIFACT::$TARGET_NAME"
           echo "::set-env name=ARTIFACT_POSTFIX::$ARTIFACT_POSTFIX"
@@ -703,14 +683,8 @@ jobs:
           -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -path artifact/Kotatogram/Updater
 
-          if [ ! -n "${{ matrix.defines }}" ]; then
-            tar -caf tlinuxupd${{ env.VERSION_NUM }}.tar.xz tlinuxupd${{ env.VERSION_NUM }}
-            echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.VERSION_NUM }}"
-          else
-            mv tlinuxupd${{ env.VERSION_NUM }} tappimageupd${{ env.VERSION_NUM }}
-            tar -caf tappimageupd${{ env.VERSION_NUM }}.tar.xz tappimageupd${{ env.VERSION_NUM }}
-            echo "::set-env name=UPDATE_FILE::tappimageupd${{ env.VERSION_NUM }}"
-          fi
+          tar -caf tlinuxupd${{ env.VERSION_NUM }}.tar.xz tlinuxupd${{ env.VERSION_NUM }}
+          echo "::set-env name=UPDATE_FILE::tlinuxupd${{ env.VERSION_NUM }}"
 
       - name: Upload update artifact.
         uses: actions/upload-artifact@v2
