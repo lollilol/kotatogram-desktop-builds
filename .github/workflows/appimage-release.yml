@@ -652,7 +652,7 @@ jobs:
           mv $APPIMAGE_NAME artifact/Kotatogram/$TARGET_NAME
           echo "::set-env name=TARGET_ARTIFACT::$TARGET_NAME"
           echo "::set-env name=ARTIFACT_POSTFIX::$ARTIFACT_POSTFIX"
-          ${{ needs.check.outputs.update }} && mv out/Release/bin/Updater artifact/Kotatogram
+          ${{ needs.check.outputs.update }} && mv out/Release/Updater artifact/Kotatogram
 
           cd artifact
           tar -caf $ARTIFACT_NAME Kotatogram
@@ -693,7 +693,7 @@ jobs:
         run: |
           cd $REPO_NAME
 
-          ./out/Release/bin/Packer -version ${{ env.VERSION_NUM }}${{ env.PACKER_BETA }} \
+          ./out/Release/Packer -version ${{ env.VERSION_NUM }}${{ env.PACKER_BETA }} \
           -path artifact/Kotatogram/${{ env.TARGET_ARTIFACT }} \
           -path artifact/Kotatogram/Updater
 
