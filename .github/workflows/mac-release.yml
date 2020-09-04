@@ -317,8 +317,8 @@ jobs:
       - name: Package update.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
         run: |
           cd $REPO_NAME
 
