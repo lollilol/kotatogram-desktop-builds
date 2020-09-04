@@ -416,7 +416,7 @@ jobs:
       - name: Upload binary to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.telegram
+          && needs.check.outputs.telegram == 'true'
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -430,8 +430,8 @@ jobs:
       - name: Make installer.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.installer
-          && needs.check.outputs.update
+          && needs.check.outputs.installer == 'true'
+          && needs.check.outputs.update == 'true'
         shell: cmd
         run: >
           iscc
@@ -444,7 +444,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.installer
+          && needs.check.outputs.installer == 'true'
         with:
           path: ./${{ env.REPO_NAME }}/artifact/Kotatogram/ksetup.${{ env.VERSION_STR_FULL }}.exe
           name: Installer
@@ -452,9 +452,9 @@ jobs:
       - name: Upload installer to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.telegram
-          && needs.check.outputs.installer
-          && needs.check.outputs.update
+          && needs.check.outputs.telegram == 'true'
+          && needs.check.outputs.installer == 'true'
+          && needs.check.outputs.update == 'true'
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
@@ -468,8 +468,8 @@ jobs:
       - name: Package update.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
         shell: bash
         run: |
           cd $REPO_NAME
@@ -484,8 +484,8 @@ jobs:
         uses: actions/upload-artifact@v2
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
         with:
           path: ./${{ env.REPO_NAME }}/tupdate${{ env.VERSION_NUM }}
           name: Update file
@@ -493,9 +493,9 @@ jobs:
       - name: Upload update to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
-          && needs.check.outputs.telegram
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
+          && needs.check.outputs.telegram == 'true'
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}

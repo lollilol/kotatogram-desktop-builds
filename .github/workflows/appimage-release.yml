@@ -688,8 +688,8 @@ jobs:
       - name: Package update.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
         run: |
           cd $REPO_NAME
 
@@ -704,8 +704,8 @@ jobs:
         uses: actions/upload-artifact@v2
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
         with:
           path: ./${{ env.REPO_NAME }}/${{ env.UPDATE_FILE }}
           name: Update file${{ env.ARTIFACT_POSTFIX }}
@@ -713,9 +713,9 @@ jobs:
       - name: Upload update to Telegram.
         if: >
           env.ONLY_CACHE == 'false'
-          && needs.check.outputs.update
-          && needs.check.outputs.packer
-          && needs.check.outputs.telegram
+          && needs.check.outputs.update == 'true'
+          && needs.check.outputs.packer == 'true'
+          && needs.check.outputs.telegram == 'true'
         env:
           TELETHON_API_ID: ${{ secrets.TELETHON_API_ID }}
           TELETHON_API_HASH: ${{ secrets.TELETHON_API_HASH }}
