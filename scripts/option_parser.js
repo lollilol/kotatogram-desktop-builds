@@ -36,7 +36,7 @@ module.exports = ({github, context, currentBuild}) => {
 	function parseRef(s) {
 		let pattern = /^(?:ref(?:erence)?|commit|tag|branch):\s*(.*)$/gmi;
 		let matches = pattern.exec(s);
-		if (!matches || matches.length < 1) return "master";
+		if (!matches || matches.length < 1) return "dev";
 
 		return matches[1];
 	}
