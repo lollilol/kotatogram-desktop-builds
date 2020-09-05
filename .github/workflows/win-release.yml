@@ -359,6 +359,12 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
+          set UPDDEFINE="OFF"
+          if NOT "${{ needs.check.outputs.update }}" == "true" set UPDDEFINE="ON"
+
+          set PACKERDEFINE="ON"
+          if NOT "${{ needs.check.outputs.packer }}" == "true" set PACKERDEFINE="OFF"
+
           cd %REPO_NAME%\Telegram
           
           call configure.bat ^
