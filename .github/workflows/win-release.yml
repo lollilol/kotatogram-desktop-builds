@@ -359,14 +359,14 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
+          cd %REPO_NAME%\Telegram
+
           set UPDDEFINE="OFF"
           if NOT "${{ needs.check.outputs.update }}" == "true" set UPDDEFINE="ON"
 
           set PACKERDEFINE="ON"
           if NOT "${{ needs.check.outputs.packer }}" == "true" set PACKERDEFINE="OFF"
 
-          cd %REPO_NAME%\Telegram
-          
           call configure.bat ^
           -D TDESKTOP_API_ID=%API_ID% ^
           -D TDESKTOP_API_HASH=%API_HASH% ^
@@ -377,8 +377,7 @@ jobs:
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
           call vcvars32.bat
-          cd ..\out
-          msbuild Telegram.sln /nologo /p:Configuration=Release,Platform=Win32
+          cmake --build ../out --config Release
 
       - name: Move artifact.
         if: env.ONLY_CACHE == 'false'
