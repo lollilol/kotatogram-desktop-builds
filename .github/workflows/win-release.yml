@@ -368,12 +368,11 @@ jobs:
           if NOT "${{ needs.check.outputs.packer }}" == "true" set PACKERDEFINE="OFF"
 
           call configure.bat ^
-          -D TDESKTOP_API_ID=%API_ID% ^
-          -D TDESKTOP_API_HASH=%API_HASH% ^
-          -D DESKTOP_APP_DISABLE_AUTOUPDATE=%UPDDEFINE% ^
-          -D KTGDESKTOP_ENABLE_PACKER=%PACKERDEFINE% ^
-          -D DESKTOP_APP_USE_PACKAGED=OFF ^
-          %TDESKTOP_BUILD_DEFINE% ^
+          -DTDESKTOP_API_ID=%API_ID% ^
+          -DTDESKTOP_API_HASH=%API_HASH% ^
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=%UPDDEFINE% ^
+          -DKTGDESKTOP_ENABLE_PACKER=%PACKERDEFINE% ^
+          -DDESKTOP_APP_USE_PACKAGED=OFF ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
           call vcvars32.bat
