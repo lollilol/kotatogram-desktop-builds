@@ -332,7 +332,7 @@ jobs:
           mkdir tg_owt\out\Release
           cd tg_owt\out\Release
           cmake -G Ninja ^
-          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
           -DTG_OWT_SPECIAL_TARGET=win ^
           -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../qt_%QT%/qtbase/src/3rdparty/libjpeg ^
           -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_%OPENSSL_VER%/include ^
