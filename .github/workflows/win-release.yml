@@ -352,6 +352,13 @@ jobs:
           cd %LibrariesPath%
           rmdir /S /Q qt_%QT%
 
+      - name: System info.
+        shell: cmd
+        run: |
+          wmic OS get FreePhysicalMemory    
+          wmic computersystem get TotalPhysicalMemory  
+          wmic logicaldisk get description,name,FileSystem,FreeSpace,size
+
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         shell: cmd
