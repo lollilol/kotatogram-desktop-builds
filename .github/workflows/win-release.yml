@@ -218,7 +218,7 @@ jobs:
         run: |
           %VC%
 
-          git clone %GIT%/kotatogram/opus.git
+          git clone %GIT%/telegramdesktop/opus.git
           cd opus
           git checkout tdesktop
           cd win32\VS2015
@@ -345,13 +345,9 @@ jobs:
           :: Cleanup.
           cd %LibrariesPath%\tg_owt
           move out\Release\tg_owt.lib tg_owt.lib
-          move out\Release\tg_owt.pdb tg_owt.pdb
-          move out\Release\vc140.pdb vc140.pdb
           rmdir /S /Q out
           mkdir out\Release
           move tg_owt.lib out\Release\tg_owt.lib
-          move tg_owt.pdb out\Release\tg_owt.pdb
-          move vc140.pdb out\Release\vc140.pdb
 
           cd %LibrariesPath%
           rmdir /S /Q qt_%QT%
