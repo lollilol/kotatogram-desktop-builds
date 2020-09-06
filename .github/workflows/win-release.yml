@@ -342,13 +342,6 @@ jobs:
 
           ninja
 
-          :: Cleanup.
-          cd %LibrariesPath%\tg_owt
-          move out\Release\tg_owt.lib tg_owt.lib
-          rmdir /S /Q out
-          mkdir out\Release
-          move tg_owt.lib out\Release\tg_owt.lib
-
           cd %LibrariesPath%
           rmdir /S /Q qt_%QT%
 
