@@ -73,21 +73,19 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           xcodebuild -version > CACHE_KEY.txt
-          echo $MIN_MAC >> CACHE_KEY.txt
-          echo $PREFIX >> CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
             thisFile=buildscripts/.github/workflows/mac-release.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
           fi
-          echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
-          echo ::add-path::/usr/local/opt/qt/bin
+          echo /usr/local/opt/qt/bin >> $GITHUB_PATH
 
           mkdir -p Libraries/macos
           cd Libraries/macos
-          echo ::set-env name=LibrariesPath::`pwd`
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
 
       - name: Setting up updater keys.
         if: >
@@ -238,12 +236,13 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --depth=1 $GIT/desktop-app/tg_owt.git
+          git clone --recursive --depth=1 $GIT/desktop-app/tg_owt.git
           cd tg_owt
 
           cmake -B build . \
           -GNinja \
           -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
           -DTG_OWT_PACKAGED_BUILD_FFMPEG_STATIC=ON
 
           cmake --build build -j$(sysctl -n hw.logicalcpu)
@@ -280,7 +279,7 @@ jobs:
 
           tag_name=${{ needs.check.outputs.display_version }}
           artifact_name=${{ env.VERSION_STR }}.dmg
-          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+          echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
 
           mkdir dmgsrc
           mv Kotatogram.app dmgsrc
@@ -327,7 +326,7 @@ jobs:
           -target mac
 
           tar -caf tmacupd${{ env.VERSION_NUM }}.tar.xz tmacupd${{ env.VERSION_NUM }}
-          echo "::set-env name=UPDATE_FILE::tmacupd${{ env.VERSION_NUM }}"
+          echo ""UPDATE_FILE=tmacupd${{ env.VERSION_NUM }}"" >> $GITHUB_ENV
 
       - name: Upload update artifact.
         uses: actions/upload-artifact@v2

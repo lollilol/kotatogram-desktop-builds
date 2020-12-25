@@ -10,7 +10,7 @@ echo "Version: ${_VERSION}"
 echo "Version string: ${_VERSIONSTR}"
 echo "Full version string: ${_VERSIONSTRFULL}"
 echo "Beta switch for packer: ${_BETA_SWITCH}"
-echo "::set-env name=VERSION_NUM::${_VERSION}"
-echo "::set-env name=VERSION_STR::${_VERSIONSTR}"
-echo "::set-env name=VERSION_STR_FULL::${_VERSIONSTRFULL}"
-echo "::set-env name=PACKER_BETA::${_BETA_SWITCH}"
+echo ""VERSION_NUM=${_VERSION}"" >> $GITHUB_ENV
+echo ""VERSION_STR=${_VERSIONSTR}"" >> $GITHUB_ENV
+echo ""VERSION_STR_FULL=${_VERSIONSTRFULL}"" >> $GITHUB_ENV
+echo ""PACKER_BETA=${_BETA_SWITCH}"" >> $GITHUB_ENV
