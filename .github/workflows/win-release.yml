@@ -390,7 +390,7 @@ jobs:
           echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
 
           mkdir -p artifact/Kotatogram
-          mv build/bin/Kotatogram.exe artifact/Kotatogram
+          mv out/Release/Kotatogram.exe artifact/Kotatogram
           ${{ needs.check.outputs.update }} && mv build/bin/Updater.exe artifact/Kotatogram
 
           cd artifact
